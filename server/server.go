@@ -25,10 +25,29 @@ func ListenAndServe(port int) {
 	// metrics
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(router)
+	// core endpoints
+	router.GET("/entry", RetreieveEntry)
+	router.POST("/entry", CreateEntry)
+	router.GET("/save", ExportDB)
 	// start server
 	logMsg("Serving on port %d", port)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), router)
 	if err != nil {
 		logFatalf("ListenAndServe: %v", err)
 	}
+}
+
+// retrieve and try from db
+func RetreieveEntry(c *gin.Context) {
+
+}
+
+// create new entry in db
+func CreateEntry(c *gin.Context) {
+
+}
+
+// export db to file
+func ExportDB(c *gin.Context) {
+
 }
