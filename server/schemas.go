@@ -6,5 +6,6 @@ import (
 
 // server environment
 type Server struct {
-	db *badger.DB
+	keysToValues *badger.DB
+	valuesToKeys *badger.DB
 }

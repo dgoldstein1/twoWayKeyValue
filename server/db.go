@@ -5,12 +5,13 @@ import (
 	"os"
 )
 
-func ConnectToDb() (*badger.DB, error) {
+// connects to both keyToValue and valueToKey store
+func ConnectToDb() (*badger.DB, *badger.DB, error) {
 	dir := os.Getenv("GRAPH_DB_STORE_DIR")
 	// setup db properties
 	options := badger.Options{
-		Dir:                     dir,
-		ValueDir:                dir,
+		Dir:                     dir + "/keysToValues",
+		ValueDir:                dir + "/keysToValues",
 		LevelOneSize:            256 << 20,
 		LevelSizeMultiplier:     10,
 		MaxLevels:               7,
@@ -26,5 +27,24 @@ func ConnectToDb() (*badger.DB, error) {
 		ValueThreshold:          32,
 		Truncate:                false,
 	}
-	return badger.Open(options)
+	// create keys => values DB
+	keysToValuesDB, err := badger.Open(options)
+	if err != nil {
+		return nil, nil, err
+	}
+	// create values => keys DB
+	options.Dir = dir + "/valuesToKeys"
+	options.ValueDir = dir + "/valuesToKeys"
+	valuesToKeysDB, err := badger.Open(options)
+	return keysToValuesDB, valuesToKeysDB, err
+}
+
+// write entry to 'key' store
+func WriteKey() error {
+	return nil
+}
+
+// write entry to 'value' store
+func WriteValue() error {
+	return nil
 }

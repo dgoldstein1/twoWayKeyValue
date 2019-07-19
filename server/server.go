@@ -18,12 +18,12 @@ var logDebug = log.Debugf
 // entrypoint
 func ListenAndServe(port int) {
 	// try to connect to db
-	db, err := ConnectToDb()
+	keysToValues, valuesToKeys, err := ConnectToDb()
 	if err != nil {
 		logFatalf("Could not establish connection to db: %v", err)
 	}
 	// create server object
-	s := Server{db}
+	s := Server{keysToValues, valuesToKeys}
 	// define endpoints
 	router := gin.Default()
 	router.Use(gin.Logger())
