@@ -1,16 +1,17 @@
 package main
 
 import (
+	"github.com/dgoldstein1/twoWayKeyValue/server"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"os"
 	"strconv"
 )
 
-// checks environment for required env vars
 var logFatalf = log.Fatalf
 var logMsg = log.Infof
 
+// checks environment for required env vars
 func parseEnv() {
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
@@ -48,6 +49,9 @@ func main() {
 			Aliases: []string{"s"},
 			Usage:   "crawl on wikipedia articles",
 			Action: func(c *cli.Context) error {
+				parseEnv()
+				port, _ := strconv.Atoi(os.Getenv("GRAPH_DB_STORE_PORT"))
+				server.ListenAndServe(port)
 				return nil
 			},
 		},

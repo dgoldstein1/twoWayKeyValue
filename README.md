@@ -43,6 +43,14 @@ export GRAPH_DB_STORE_PORT="5001"
 go test $(go list ./... | grep -v /vendor/)
 ```
 
+## Generating New Documentation
+
+```sh
+pip install PyYAML
+python api/swagger-yaml-to-html.py < api/swagger.yml > api/index.html
+```
+
+
 ## Authors
 
 * **David Goldstein** - [DavidCharlesGoldstein.com](http://www.davidcharlesgoldstein.com/?github-two-way-kv) - [Decipher Technology Studios](http://deciphernow.com/)
