@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/dgoldstein1/twoWayKeyValue/server"
+	// "github.com/dgoldstein1/twoWayKeyValue/server"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"os"
@@ -50,8 +50,8 @@ func main() {
 			Usage:   "crawl on wikipedia articles",
 			Action: func(c *cli.Context) error {
 				parseEnv()
-				port, _ := strconv.Atoi(os.Getenv("GRAPH_DB_STORE_PORT"))
-				server.ListenAndServe(port)
+				// port, _ := strconv.Atoi(os.Getenv("GRAPH_DB_STORE_PORT"))
+
 				return nil
 			},
 		},

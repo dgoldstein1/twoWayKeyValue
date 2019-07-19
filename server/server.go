@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/zsais/go-gin-prometheus"
@@ -16,7 +15,7 @@ var logErr = log.Errorf
 var logDebug = log.Debugf
 
 // entrypoint
-func ListenAndServe(port int) {
+func SetupRouter() (*gin.Engine, *Server) {
 	// try to connect to db
 	keysToValues, valuesToKeys, err := ConnectToDb()
 	if err != nil {
@@ -28,11 +27,13 @@ func ListenAndServe(port int) {
 	router := gin.Default()
 	router.Use(gin.Logger())
 	// set base page as readme html
-	router.LoadHTMLGlob("api/*.html")
-	router.Static("/static", "static")
-	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
-	})
+	if gin.Mode() != gin.TestMode {
+		router.LoadHTMLGlob("api/*.html")
+		router.Static("/static", "static")
+		router.GET("/", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "index.html", nil)
+		})
+	}
 	// metrics
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(router)
@@ -40,17 +41,22 @@ func ListenAndServe(port int) {
 	router.GET("/entry", s.RetreieveEntry)
 	router.POST("/entry", s.CreateEntry)
 	router.GET("/save", s.ExportDB)
-	// start server
-	logMsg("Serving on port %d", port)
-	err = http.ListenAndServe(fmt.Sprintf(":%d", port), router)
-	if err != nil {
-		logFatalf("ListenAndServe: %v", err)
-	}
+	// return server
+	return router, &s
 }
 
 // retrieve and try from db
 func (s *Server) RetreieveEntry(c *gin.Context) {
-
+	// validate that either key of value was passed
+	key := c.Query("key")
+	val := c.Query("value")
+	if key == "" && val == "" {
+		c.JSON(400, Error{
+			Error: "Must provide either a key or value query string",
+			Code:  400,
+		})
+		return
+	}
 }
 
 // create new entry in db

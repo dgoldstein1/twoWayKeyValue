@@ -14,3 +14,8 @@ type Entry struct {
 	Key   string
 	Value int
 }
+
+type Error struct {
+	Code  int
+	Error string
+}
