@@ -13,5 +13,5 @@
 
 *.cover
 *.html
-./build
+build/*
 vendor
