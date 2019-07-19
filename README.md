@@ -1,4 +1,4 @@
-# Two Way Key Value Store
+# Two Way Key Map Store
 
 Web server for easy look up of value -> key and key -> value, for integration with [big-data graph DB](https://github.com/dgoldstein1/graphApi). Uses [BadgerDB](https://github.com/dgraph-io/badger) as underlying store.
 

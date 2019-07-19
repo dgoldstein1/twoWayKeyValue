@@ -1,123 +1,76 @@
 openapi: 3.0.0
 info:
-  title: Simple Big Graph
-  description: |
-    RESTful graph API exposing the Stanford Network Analysis Platform (SNAP)
-
-    - [Source Code](https://github.com/dgoldstein1/graphApi)
-    - [SNAP](https://snap.stanford.edu/index.html)
-  version: "1.0.0-oas3"
+  version: '0.1.0'
+  title: 'Two Way Key Map Store'
+  description: 'Fast and Portable Value -> Key and Key -> Value lookups'
+# Added by API Auto Mocking Plugin
 servers:
-  - url: http://staging-api.example.com
-    description: TODO create demo API
-
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/dgoldstein1/twoWayKeyValue/0.1.0
 
 paths:
-  /edges:
+  /entry:
     post:
-      summary: Add edges to graph. Creates neighbor nodes if they do not already exist.
+      summary: Adds a key:value entry. Keys and values must be unique.
       requestBody:
-        description: Optional description in *Markdown*
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required:
-                - neighbors
-              properties:
-                neighbors:
-                  type: array
-                  items:
-                    type: string
-      parameters:
-        - in: query
-          name: node
-          schema:
-            type: string
-          required: true
-          description: Name of node to retrieve neighbors
+              schema:
+                $ref: '#/components/schemas/KeyValueEntry'
       responses:
         '200':
-          description: A JSON array of neighbors
+          description: A entry in the database.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EdgesResponse'
+                $ref: '#/components/schemas/KeyValueEntry'
+
+        '500':
+          description: Value must be unique.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                
+    get:
+      summary: Retrieves entry from the DB using a key or value.
+      parameters:
+        - in: query
+          name: key
+          schema:
+            type: string
+          required: true
+          description: key of the entry to retrieve
+        - in: query
+          name: value
+          schema:
+            type: number
+          required: true
+          description: value of the entry to retrieve      
+          
+      responses:
+        '200':
+          description: An entry in the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyValueEntry'
 
         '404':
-          description: node does not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EdgesResponse'
-
-        '500':
-          description: An error message.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /neighbors:
-    get:
-      summary: Returns a list of neighboring nodes.
-      parameters:
-        - in: query
-          name: node
-          schema:
-            type: string
-          required: true
-          description: Name of node to retrieve neighbors
-      responses:
-        '200':
-          description: A JSON array of neighbors
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
-        '500':
-          description: An error message.
+          description: entry does not exist
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
-
-
-  /shortestPath:
-    get:
-      summary: Returns path between two nodes, if exists.
-
-      parameters:
-        - in: query
-          name: start
-          schema:
-            type: string
-          required: true
-          description: Name of the starting node.
-        - in: query
-          name: end
-          schema:
-            type: string
-          required: true
-          description: Name of the ending node.
-      responses:
-        '200':
-          description: A JSON array of nodes
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
         '500':
-          description: An error message.
+          description: Value must be unique.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
 
   /metrics:
     get:
@@ -134,10 +87,10 @@ paths:
 
   /save:
     get:
-      summary: Saves current graph to GRAPH_SAVE_PATH and streams file. Note that this endpoint can take 1+ minutes.
+      summary: Streams underlying badgerDB file. Note that this endpoint can take 1+ minutes.
       responses:
         '200':
-          description: File stream of graph as a [TF file](https://snap.stanford.edu/snappy/doc/reference/streams.html#TFIn).
+          description: File stream of graph as a [Badger DB file](https://github.com/dgraph-io/badger).
         '500':
           description: An error message.
           content:
@@ -147,6 +100,16 @@ paths:
 
 components:
   schemas:
+    KeyValueEntry:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+        value:
+              type: number
     EdgesResponse:
       type: object
       properties:
