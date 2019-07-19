@@ -8,11 +8,22 @@ import (
 	"net/http"
 )
 
+// mock out logging calls for testing
 var logFatalf = log.Fatalf
+var logWarn = log.Warnf
 var logMsg = log.Infof
+var logErr = log.Errorf
+var logDebug = log.Debugf
 
 // entrypoint
 func ListenAndServe(port int) {
+	// try to connect to db
+	db, err := ConnectToDb()
+	if err != nil {
+		logFatalf("Could not establish connection to db: %v", err)
+	}
+	// create server object
+	s := Server{db}
 	// define endpoints
 	router := gin.Default()
 	router.Use(gin.Logger())
@@ -26,28 +37,28 @@ func ListenAndServe(port int) {
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(router)
 	// core endpoints
-	router.GET("/entry", RetreieveEntry)
-	router.POST("/entry", CreateEntry)
-	router.GET("/save", ExportDB)
+	router.GET("/entry", s.RetreieveEntry)
+	router.POST("/entry", s.CreateEntry)
+	router.GET("/save", s.ExportDB)
 	// start server
 	logMsg("Serving on port %d", port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), router)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", port), router)
 	if err != nil {
 		logFatalf("ListenAndServe: %v", err)
 	}
 }
 
 // retrieve and try from db
-func RetreieveEntry(c *gin.Context) {
+func (s *Server) RetreieveEntry(c *gin.Context) {
 
 }
 
 // create new entry in db
-func CreateEntry(c *gin.Context) {
+func (s *Server) CreateEntry(c *gin.Context) {
 
 }
 
 // export db to file
-func ExportDB(c *gin.Context) {
+func (s *Server) ExportDB(c *gin.Context) {
 
 }
