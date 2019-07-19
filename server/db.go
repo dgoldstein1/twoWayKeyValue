@@ -3,6 +3,7 @@ package server
 import (
 	badger "github.com/dgraph-io/badger"
 	"os"
+	"strconv"
 )
 
 // connects to both keyToValue and valueToKey store
@@ -39,12 +40,18 @@ func ConnectToDb() (*badger.DB, *badger.DB, error) {
 	return keysToValuesDB, valuesToKeysDB, err
 }
 
-// write entry to 'key' store
-func WriteKey() error {
-	return nil
-}
-
-// write entry to 'value' store
-func WriteValue() error {
-	return nil
+// writes entry to both dbs
+func WriteEntry(k2v *badger.DB, v2k *badger.DB, e Entry) error {
+	// cast value as int -> byte(string)
+	val := []byte(strconv.Itoa(e.Value))
+	key := []byte(e.Key)
+	// update k2v with k : v
+	err := k2v.Update(func(txn *badger.Txn) error {
+		return txn.Set(key, val)
+	})
+	// write v:k
+	err = v2k.Update(func(txn *badger.Txn) error {
+		return txn.Set(val, key)
+	})
+	return err
 }

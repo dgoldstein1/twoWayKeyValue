@@ -9,3 +9,8 @@ type Server struct {
 	keysToValues *badger.DB
 	valuesToKeys *badger.DB
 }
+
+type Entry struct {
+	Key   string
+	Value int
+}
