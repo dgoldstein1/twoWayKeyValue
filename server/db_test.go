@@ -41,7 +41,7 @@ func TestWriteEntry(t *testing.T) {
 	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
 	k2v, v2k, err := ConnectToDb()
 	if err != nil {
-		t.FailNow()
+		t.Fatal(err)
 	}
 	assert.Nil(t, err)
 	assert.NotNil(t, k2v, v2k)
