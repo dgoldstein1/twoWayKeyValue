@@ -38,12 +38,35 @@ func TestRetrieveEntry(t *testing.T) {
 		return e, []error{}
 	}
 
-	t.Run("correctly retrieves valid entry", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		jsonStr := []byte(`[{key : "testKey"}]`)
-		req, _ := http.NewRequest("POST", "/entries", bytes.NewBuffer(jsonStr))
-		router.ServeHTTP(w, req)
-		assert.Equal(t, 200, w.Code)
-		assert.Equal(t, "", w.Body.String())
-	})
+	type Test struct {
+		Name             string
+		Path             string
+		Body             []byte
+		ExpectedCode     int
+		ExpectedResponse string
+		Method           string
+	}
+
+	testTable := []Test{
+		Test{
+			Name:             "correctly retrieves valid entry",
+			Path:             "/entries",
+			Body:             []byte(`[{key : "testKey"}]`),
+			ExpectedCode:     200,
+			ExpectedResponse: "",
+			Method:           "POST",
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer(test.Body))
+			router.ServeHTTP(w, req)
+			assert.Equal(t, test.ExpectedCode, w.Code)
+			assert.Equal(t, test.ExpectedResponse, w.Body.String())
+		})
+
+	}
+
 }
