@@ -10,7 +10,7 @@ servers:
 
 paths:
   /entry:
-    post:
+    put:
       summary: Adds a key:value entry. Keys and values must be unique.
       requestBody:
         required: true
@@ -32,40 +32,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-                
-    get:
-      summary: Retrieves entry from the DB using a key or value.
-      parameters:
-        - in: query
-          name: key
-          schema:
-            type: string
-          required: true
-          description: key of the entry to retrieve
-        - in: query
-          name: value
-          schema:
-            type: number
-          required: true
-          description: value of the entry to retrieve      
-          
+
+    post:
+      summary: Retrieves entries from the DB using keys or values.
+      requestBody:
+        required: true
+        content:
+          application/json:
+              schema:
+                $ref: '#/components/schemas/KeyValueEntryArray'
+
+
       responses:
         '200':
           description: An entry in the database
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/KeyValueEntry'
-
-        '404':
-          description: entry does not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/KeyValueEntryArray'
 
         '500':
-          description: Value must be unique.
+          description: Server Error
           content:
             application/json:
               schema:
@@ -100,6 +87,20 @@ paths:
 
 components:
   schemas:
+
+    KeyValueEntryArray:
+      type: array
+      items:
+        type : object
+        required:
+          - key
+          - value
+        properties:
+          key:
+            type: string
+          value:
+            type: number
+
     KeyValueEntry:
       type: object
       required:
@@ -109,15 +110,8 @@ components:
         key:
           type: string
         value:
-              type: number
-    EdgesResponse:
-      type: object
-      properties:
-        neighborsAdded:
-          description: new neighbors added to the current node (which were not currently there)
-          type: array
-          items:
-            type: string
+          type: number
+
     Error:
       type: object
       properties:
