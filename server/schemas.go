@@ -13,8 +13,8 @@ type Server struct {
 }
 
 type Entry struct {
-	Key   string
-	Value int
+	Key   string `json:"key" binding:"required"`
+	Value int    `json:"value" binding:"required"`
 }
 
 type Error struct {

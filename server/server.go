@@ -58,7 +58,15 @@ func ValidatEntry(e Entry) error {
 
 // retrieve and try from db
 func (s *Server) RetreieveEntries(c *gin.Context) {
-
+	fmt.Println(c.Request.Body)
+	// read in request
+	entries := []Entry{}
+	if err := c.BindJSON(&entries); err != nil {
+		c.JSON(400, Error{400, err.Error()})
+	}
+	if len(entries) == 0 {
+		c.JSON(400, "Bad []entry or no entries passed")
+	}
 }
 
 // create new entry in db
