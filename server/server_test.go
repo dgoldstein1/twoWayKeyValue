@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -11,22 +10,21 @@ import (
 
 func TestRetrieveEntry(t *testing.T) {
 	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
-	router, s := SetupRouter()
+	router, s := SetupRouter("*")
 	// insert data into db
 	e := Entry{
 		Key:   "k",
 		Value: 15,
 	}
 	WriteEntry(s.valuesToKeys, s.valuesToKeys, e)
-	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
 	t.Run("correctly retrieves valid entry", func(t *testing.T) {
 
-		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/entry?key=v&value=25", nil)
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, 200, w.Code)
-		assert.Equal(t, "pong", w.Body.String())
+		assert.Equal(t, "", w.Body.String())
 
 	})
 	// t.Run("fails on invalid int", func(t *testing.T) {

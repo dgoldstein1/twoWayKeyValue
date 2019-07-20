@@ -15,7 +15,7 @@ var logErr = log.Errorf
 var logDebug = log.Debugf
 
 // entrypoint
-func SetupRouter() (*gin.Engine, *Server) {
+func SetupRouter(docs string) (*gin.Engine, *Server) {
 	// try to connect to db
 	keysToValues, valuesToKeys, err := ConnectToDb()
 	if err != nil {
@@ -27,13 +27,11 @@ func SetupRouter() (*gin.Engine, *Server) {
 	router := gin.Default()
 	router.Use(gin.Logger())
 	// set base page as readme html
-	if gin.Mode() != gin.TestMode {
-		router.LoadHTMLGlob("api/*.html")
-		router.Static("/static", "static")
-		router.GET("/", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "index.html", nil)
-		})
-	}
+	router.LoadHTMLGlob(docs)
+	router.Static("/static", "static")
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", nil)
+	})
 	// metrics
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(router)
