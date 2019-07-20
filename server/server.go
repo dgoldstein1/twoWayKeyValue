@@ -1,10 +1,13 @@
 package server
 
 import (
+	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/zsais/go-gin-prometheus"
 	"net/http"
+	"strconv"
 )
 
 // mock out logging calls for testing
@@ -43,18 +46,31 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	return router, &s
 }
 
+// validate key and value
+func ValidateArgs(key string, value int) error {
+	if key == "" && value == 0 {
+		return errors.New("Must provide valid key or value query string")
+	}
+	if key == "" && value <= 0 {
+		return fmt.Errorf("Invalid int '%d' passed on lookup", value)
+	}
+	return nil
+}
+
 // retrieve and try from db
 func (s *Server) RetreieveEntry(c *gin.Context) {
-	// validate that either key of value was passed
 	key := c.Query("key")
-	val := c.Query("value")
-	if key == "" && val == "" {
+	val, _ := strconv.Atoi(c.Query("value"))
+	// valdate args
+	err := ValidateArgs(key, val)
+	if err != nil {
 		c.JSON(400, Error{
-			Error: "Must provide either a key or value query string",
+			Error: err.Error(),
 			Code:  400,
 		})
 		return
 	}
+
 }
 
 // create new entry in db
