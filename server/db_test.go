@@ -92,3 +92,29 @@ func TestWriteEntry(t *testing.T) {
 	})
 
 }
+
+func TestGetEntry(t *testing.T) {
+	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
+	os.MkdirAll(testingDir, os.ModePerm)
+	k2v, v2k, err := ConnectToDb()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Nil(t, err)
+	assert.NotNil(t, k2v, v2k)
+	defer k2v.Close()
+	defer v2k.Close()
+	// write entry to DBs
+	key := "TESTING_KEY_1"
+	val := 234235
+	err = WriteEntry(k2v, v2k, Entry{key, val})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("Gets correct entry from key", func(t *testing.T) {
+
+	})
+	t.Run("Gets correct entry from value", func(t *testing.T) {
+
+	})
+}
