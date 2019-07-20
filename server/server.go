@@ -63,10 +63,13 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 	entries := []Entry{}
 	if err := c.BindJSON(&entries); err != nil {
 		c.JSON(400, Error{400, err.Error()})
+		return
 	}
 	if len(entries) == 0 {
 		c.JSON(400, "Bad []entry or no entries passed")
+		return
 	}
+	//
 }
 
 // create new entry in db
