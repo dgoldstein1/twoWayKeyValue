@@ -46,12 +46,12 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 }
 
 // validate key and value
-func ValidateArgs(key string, value int) error {
-	if key == "" && value == 0 {
+func ValidatEntry(e Entry) error {
+	if e.Key == "" && e.Value == 0 {
 		return errors.New("Must provide valid key or value query string")
 	}
-	if key == "" && value <= 0 {
-		return fmt.Errorf("Invalid int '%d' passed on lookup", value)
+	if e.Value <= 0 {
+		return fmt.Errorf("Invalid int '%d'", e.Value)
 	}
 	return nil
 }

@@ -10,6 +10,21 @@ import (
 	"testing"
 )
 
+func TestValidateEntry(t *testing.T) {
+	t.Run("fails when both are noneType", func(t *testing.T) {
+		err := ValidatEntry(Entry{})
+		assert.NotNil(t, err)
+	})
+	t.Run("fails when value is <= 0", func(t *testing.T) {
+		err := ValidatEntry(Entry{"test", -3})
+		assert.NotNil(t, err)
+	})
+	t.Run("passes with valid entry", func(t *testing.T) {
+		err := ValidatEntry(Entry{"test", 2534})
+		assert.Nil(t, err)
+	})
+}
+
 func TestRetrieveEntry(t *testing.T) {
 	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
 	router, s := SetupRouter("*")
