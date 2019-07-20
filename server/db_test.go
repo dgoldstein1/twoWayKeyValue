@@ -123,8 +123,9 @@ func TestGetEntry(t *testing.T) {
 		assert.Equal(t, entry, e)
 	})
 	t.Run("throws errors on incorrect lookup", func(t *testing.T) {
-		e, err := GetEntry(k2v, v2k, Entry{"", val})
+		_, err := GetEntry(k2v, v2k, Entry{"25325352", 0})
 		assert.NotNil(t, err)
-		assert.Equal(t, Entry{}, e)
+		_, err = GetEntry(k2v, v2k, Entry{"", 235235234234})
+		assert.NotNil(t, err)
 	})
 }
