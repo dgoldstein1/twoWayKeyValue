@@ -7,7 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/zsais/go-gin-prometheus"
 	"net/http"
-	"strconv"
 )
 
 // mock out logging calls for testing
@@ -39,8 +38,8 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(router)
 	// core endpoints
-	router.GET("/entry", s.RetreieveEntry)
-	router.POST("/entry", s.CreateEntry)
+	router.POST("/entries", s.RetreieveEntries)
+	router.PUT("/entry", s.CreateEntry)
 	router.GET("/save", s.ExportDB)
 	// return server
 	return router, &s
@@ -58,18 +57,7 @@ func ValidateArgs(key string, value int) error {
 }
 
 // retrieve and try from db
-func (s *Server) RetreieveEntry(c *gin.Context) {
-	key := c.Query("key")
-	val, _ := strconv.Atoi(c.Query("value"))
-	// valdate args
-	err := ValidateArgs(key, val)
-	if err != nil {
-		c.JSON(400, Error{
-			Error: err.Error(),
-			Code:  400,
-		})
-		return
-	}
+func (s *Server) RetreieveEntries(c *gin.Context) {
 
 }
 

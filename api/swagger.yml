@@ -32,7 +32,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
+  /entries:
     post:
       summary: Retrieves entries from the DB using keys or values.
       requestBody:

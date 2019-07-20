@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	badger "github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -10,34 +12,23 @@ import (
 
 func TestRetrieveEntry(t *testing.T) {
 	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
-	router, _ := SetupRouter("*")
+	router, s := SetupRouter("*")
+
+	// mock out s.GetEntries DB calls
+	testKey := "testKey"
+	testval := "2523423426"
+	s.GetEntries = func(db *badger.DB, dbKeys []string) (map[string]string, []error) {
+		e := map[string]string{}
+		e[testKey] = testval
+		return e, []error{}
+	}
+
 	t.Run("correctly retrieves valid entry", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/entry?key=v&value=25", nil)
+		jsonStr := []byte(`[{key : "testKey"}]`)
+		req, _ := http.NewRequest("POST", "/entries", bytes.NewBuffer(jsonStr))
 		router.ServeHTTP(w, req)
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, "", w.Body.String())
 	})
-	t.Run("fails on invalid int", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/entry?&value=-35", nil)
-		router.ServeHTTP(w, req)
-		assert.Equal(t, 400, w.Code)
-		assert.Equal(t, "{\"Code\":400,\"Error\":\"Invalid int '-35' passed on lookup\"}", w.Body.String())
-	})
-	t.Run("fails when no key or value provided", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/entry", nil)
-		router.ServeHTTP(w, req)
-		assert.Equal(t, "{\"Code\":400,\"Error\":\"Must provide valid key or value query string\"}", w.Body.String())
-	})
-	t.Run("fails when entry does not exist", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/entry?key=doesnotexistvalue", nil)
-		router.ServeHTTP(w, req)
-		// TODO:
-		assert.Equal(t, 200, w.Code)
-		assert.Equal(t, "", w.Body.String())
-	})
-
 }
