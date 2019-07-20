@@ -55,3 +55,9 @@ func WriteEntry(k2v *badger.DB, v2k *badger.DB, e Entry) error {
 	})
 	return err
 }
+
+// retrieves entry using either key or value
+func GetEntry(k2v *badger.DB, v2k *badger.DB, e Entry) (Entry, error) {
+	entry := Entry{}
+	return entry, nil
+}

@@ -107,14 +107,24 @@ func TestGetEntry(t *testing.T) {
 	// write entry to DBs
 	key := "TESTING_KEY_1"
 	val := 234235
-	err = WriteEntry(k2v, v2k, Entry{key, val})
+	entry := Entry{key, val}
+	err = WriteEntry(k2v, v2k, entry)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Run("Gets correct entry from key", func(t *testing.T) {
-
+		e, err := GetEntry(k2v, v2k, Entry{key, 0})
+		assert.Nil(t, err)
+		assert.Equal(t, entry, e)
 	})
 	t.Run("Gets correct entry from value", func(t *testing.T) {
-
+		e, err := GetEntry(k2v, v2k, Entry{"", val})
+		assert.Nil(t, err)
+		assert.Equal(t, entry, e)
+	})
+	t.Run("throws errors on incorrect lookup", func(t *testing.T) {
+		e, err := GetEntry(k2v, v2k, Entry{"", val})
+		assert.NotNil(t, err)
+		assert.Equal(t, Entry{}, e)
 	})
 }
