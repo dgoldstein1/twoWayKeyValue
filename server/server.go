@@ -20,12 +20,12 @@ var logDebug = log.Debugf
 // entrypoint
 func SetupRouter(docs string) (*gin.Engine, *Server) {
 	// try to connect to db
-	keysToValues, valuesToKeys, err := ConnectToDb()
+	kDB, vDB, err := ConnectToDb()
 	if err != nil {
 		logFatalf("Could not establish connection to db: %v", err)
 	}
 	// create server object
-	s := Server{keysToValues, valuesToKeys}
+	s := Server{kDB, vDB, WriteEntry, GetEntries}
 	// define endpoints
 	router := gin.Default()
 	router.Use(gin.Logger())

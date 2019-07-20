@@ -10,13 +10,7 @@ import (
 
 func TestRetrieveEntry(t *testing.T) {
 	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
-	router, s := SetupRouter("*")
-	// insert data into db
-	e := Entry{
-		Key:   "k",
-		Value: 15,
-	}
-	WriteEntry(s.valuesToKeys, s.valuesToKeys, e)
+	router, _ := SetupRouter("*")
 	t.Run("correctly retrieves valid entry", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/entry?key=v&value=25", nil)
