@@ -115,23 +115,24 @@ func TestGetEntries(t *testing.T) {
 	}
 	t.Run("Gets correct entries from string", func(t *testing.T) {
 		e, err := GetEntries(k2v, []string{key})
-		assert.Nil(t, err)
+		assert.Equal(t, []error{}, err)
 		assert.Equal(t, len(e), 1)
 		if len(e) == 1 {
-			assert.Equal(t, entry, e[0])
+			assert.Equal(t, valAsString, e[key])
 		}
 	})
 	t.Run("Gets correct entry from value", func(t *testing.T) {
 		e, err := GetEntries(v2k, []string{valAsString})
-		assert.Nil(t, err)
+		assert.Equal(t, []error{}, err)
 		assert.Equal(t, len(e), 1)
 		if len(e) == 1 {
-			assert.Equal(t, entry, e[0])
+			assert.Equal(t, key, e[valAsString])
 		}
 	})
 	t.Run("throws errors on incorrect lookup", func(t *testing.T) {
 		e, err := GetEntries(v2k, []string{"Sdf23-f2-39if"})
 		assert.NotNil(t, err)
-		assert.Equal(t, len(e), 1)
+		assert.Equal(t, 1, len(err))
+		assert.Equal(t, 0, len(e))
 	})
 }

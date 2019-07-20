@@ -57,6 +57,28 @@ func WriteEntry(k2v *badger.DB, v2k *badger.DB, e Entry) error {
 }
 
 // retrieves entry using either key or value
-func GetEntries(db *badger.DB, dbKeys []string) ([]Entry, error) {
-	return []Entry{}, nil
+func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []error) {
+	errors := []error{}
+	entries := map[string]string{}
+	// read from DB
+	db.View(func(txn *badger.Txn) error {
+		// read each key in DB
+		for _, k := range dbKeys {
+			item, err := txn.Get([]byte(k))
+			if err != nil {
+				errors = append(errors, err)
+				break
+			}
+			// key exists
+			v, err := item.Value()
+			if err != nil {
+				errors = append(errors, err)
+			}
+			// add new Entry to list
+			entries[k] = string(v)
+		}
+		// return out of View function
+		return nil
+	})
+	return entries, errors
 }
