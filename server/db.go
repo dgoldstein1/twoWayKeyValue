@@ -57,39 +57,6 @@ func WriteEntry(k2v *badger.DB, v2k *badger.DB, e Entry) error {
 }
 
 // retrieves entry using either key or value
-func GetEntry(k2v *badger.DB, v2k *badger.DB, e Entry) (Entry, error) {
-	if e.Key == "" {
-		// lookup on value
-		err := v2k.View(func(txn *badger.Txn) error {
-			val := []byte(strconv.Itoa(e.Value))
-			item, err := txn.Get(val)
-			if err != nil {
-				return err
-			}
-			key, err := item.Value()
-			e.Key = string(key)
-			return err
-		})
-		if err != nil {
-			return Entry{}, err
-		}
-		// else lookup on key
-	} else {
-		err := k2v.View(func(txn *badger.Txn) error {
-			item, err := txn.Get([]byte(e.Key))
-			if err != nil {
-				return err
-			}
-			v, err := item.Value()
-			// cast as int
-			value, _ := strconv.Atoi(string(v))
-			e.Value = value
-			return err
-		})
-		if err != nil {
-			return e, err
-		}
-	}
-
-	return e, nil
+func GetEntries(db *badger.DB, dbKeys []string) ([]Entry, error) {
+	return []Entry{}, nil
 }

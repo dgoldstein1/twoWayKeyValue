@@ -93,7 +93,7 @@ func TestWriteEntry(t *testing.T) {
 
 }
 
-func TestGetEntry(t *testing.T) {
+func TestGetEntries(t *testing.T) {
 	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
 	os.MkdirAll(testingDir, os.ModePerm)
 	k2v, v2k, err := ConnectToDb()
@@ -107,25 +107,31 @@ func TestGetEntry(t *testing.T) {
 	// write entry to DBs
 	key := "TESTING_KEY_1"
 	val := 234235
+	valAsString := "234235"
 	entry := Entry{key, val}
 	err = WriteEntry(k2v, v2k, entry)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Run("Gets correct entry from key", func(t *testing.T) {
-		e, err := GetEntry(k2v, v2k, Entry{key, 0})
+	t.Run("Gets correct entries from string", func(t *testing.T) {
+		e, err := GetEntries(k2v, []string{key})
 		assert.Nil(t, err)
-		assert.Equal(t, entry, e)
+		assert.Equal(t, len(e), 1)
+		if len(e) == 1 {
+			assert.Equal(t, entry, e[0])
+		}
 	})
 	t.Run("Gets correct entry from value", func(t *testing.T) {
-		e, err := GetEntry(k2v, v2k, Entry{"", val})
+		e, err := GetEntries(v2k, []string{valAsString})
 		assert.Nil(t, err)
-		assert.Equal(t, entry, e)
+		assert.Equal(t, len(e), 1)
+		if len(e) == 1 {
+			assert.Equal(t, entry, e[0])
+		}
 	})
 	t.Run("throws errors on incorrect lookup", func(t *testing.T) {
-		_, err := GetEntry(k2v, v2k, Entry{"25325352", 0})
+		e, err := GetEntries(v2k, []string{"Sdf23-f2-39if"})
 		assert.NotNil(t, err)
-		_, err = GetEntry(k2v, v2k, Entry{"", 235235234234})
-		assert.NotNil(t, err)
+		assert.Equal(t, len(e), 1)
 	})
 }
