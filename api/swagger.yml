@@ -11,7 +11,7 @@ servers:
 paths:
   /entries:
     post:
-      summary: Retrieves entries from the DB using given keys or values. Creates entry if doesn't exist.
+      summary: Retrieves entries from the DB using given keys or values. Creates entry if doesn't exist, although only creates new entries on 'Key' value.
       requestBody:
         required: true
         content:

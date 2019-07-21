@@ -50,7 +50,7 @@ func ValidatEntry(e Entry) error {
 	if e.Key == "" && e.Value == 0 {
 		return errors.New("Must provide valid key or value query string")
 	}
-	if e.Value <= 0 {
+	if e.Value < 0 {
 		return fmt.Errorf("Invalid int '%d'", e.Value)
 	}
 	return nil
@@ -85,10 +85,28 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 			v2kToFetch = append(v2kToFetch, strconv.Itoa(e.Value))
 		}
 	}
-	// do lookup on both
-	GetEntries(s.K2v, k2vToFetch)
-	GetEntries(s.V2k, v2kToFetch)
-	// log errors
+	// lookup all
+	entriesToReturn := []Entry{}
+	_, k2vErrors := GetEntries(s.K2v, k2vToFetch)
+	_, v2kErrors := GetEntries(s.V2k, v2kToFetch)
+	// pool errors
+	errors := []string{}
+	for _, e := range v2kErrors {
+		errors = append(errors, e.Error)
+	}
+	for _, e := range k2vErrors {
+		if !e.NotFound {
+			errors = append(errors, e.Error)
+			break
+		}
+		// create new for keys if not found
+		entry, err := s.WriteEntry(s.K2v, s.V2k, e.LookupId)
+		if err != nil {
+			errors = append(errors, err.Error())
+		} else {
+			entriesToReturn = append(entriesToReturn, entry)
+		}
+	}
 	// combine into entries array
 
 }

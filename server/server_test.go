@@ -88,6 +88,14 @@ func TestRetrieveEntry(t *testing.T) {
 			Method:           "POST",
 		},
 		Test{
+			Name:             "adds new key if doesnt exist",
+			Path:             "/entries",
+			Body:             []byte(`[{"key":"testKey2432"}]`),
+			ExpectedCode:     200,
+			ExpectedResponse: "",
+			Method:           "POST",
+		},
+		Test{
 			Name:             "validates bad int type",
 			Path:             "/entries",
 			Body:             []byte(`[{"value":"0"}]`),
