@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 )
 
@@ -29,11 +30,6 @@ func TestRetrieveEntry(t *testing.T) {
 	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
 	router, _ := SetupRouter("*")
 
-	// mock out s.GetEntries DB calls
-	// testKey := "testKey"
-	// testValInt := 2523423426
-	// testval := strconv.Itoa(testValInt)
-
 	type Test struct {
 		Name                  string
 		Path                  string
@@ -44,6 +40,7 @@ func TestRetrieveEntry(t *testing.T) {
 		Method                string
 	}
 
+	createdEntry := Entry{}
 	testTable := []Test{
 		Test{
 			Name:                  "correctly retrieves valid entry",
@@ -58,6 +55,15 @@ func TestRetrieveEntry(t *testing.T) {
 			Name:                  "correctly retrieves valid entry (key only)",
 			Path:                  "/entries",
 			Body:                  []byte(`[{"key":"testKey"}]`),
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			ExpectedErrors:        []string{},
+			Method:                "POST",
+		},
+		Test{
+			Name:                  "correctly retrieves valid entry (value only)",
+			Path:                  "/entries",
+			Body:                  []byte(`[{"value":` + strconv.Itoa(createdEntry.Value) + `}]`),
 			ExpectedCode:          200,
 			ExpectedEntriesLength: 1,
 			ExpectedErrors:        []string{},
@@ -107,6 +113,11 @@ func TestRetrieveEntry(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, test.ExpectedEntriesLength, len(resp.Entries))
 				assert.Equal(t, test.ExpectedErrors, resp.Errors)
+				// set createdEntry on success
+				if len(resp.Entries) > 0 {
+					assert.NotEqual(t, 0, resp.Entries[0].Value)
+					createdEntry = resp.Entries[0]
+				}
 			} else {
 				resp := Error{}
 				body := []byte(w.Body.String())
@@ -118,5 +129,4 @@ func TestRetrieveEntry(t *testing.T) {
 		})
 
 	}
-
 }
