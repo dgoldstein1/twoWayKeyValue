@@ -40,7 +40,6 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	p.Use(router)
 	// core endpoints
 	router.POST("/entries", s.RetreieveEntries)
-	router.PUT("/entry", s.CreateEntry)
 	router.GET("/save", s.ExportDB)
 	// return server
 	return router, &s
@@ -70,7 +69,7 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 		return
 	}
 	// create big array entries for keys and values
-	entriesToReturn := []Entry{}
+	// entriesToReturn := []Entry{}
 	k2vToFetch := []string{}
 	v2kToFetch := []string{}
 	for _, e := range entriesPassed {
@@ -87,8 +86,8 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 		}
 	}
 	// do lookup on both
-	k2vMap, errors := GetEntries(s.K2v, k2vToFetch)
-	v2kMap, errorsTemp := GetEntries(s.V2k, v2kToFetch)
+	_, errors := GetEntries(s.K2v, k2vToFetch)
+	_, errorsTemp := GetEntries(s.V2k, v2kToFetch)
 	// log errors
 	for _, e := range errorsTemp {
 		errors = append(errors, e)
