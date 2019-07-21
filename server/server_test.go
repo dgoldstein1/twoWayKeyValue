@@ -54,46 +54,42 @@ func TestRetrieveEntry(t *testing.T) {
 			ExpectedErrors:        []string{},
 			Method:                "POST",
 		},
-		// Test{
-		// 	Name:             "correctly retrieves valid entry (key only)",
-		// 	Path:             "/entries",
-		// 	Body:             []byte(`[{"key":"testKey"}]`),
-		// 	ExpectedCode:     200,
-		// 	ExpectedResponse: "{\"errors\":[],\"entries\":[{\"key\":\"testKey\",\"value\":2523423426}]}",
-		// 	Method:           "POST",
-		// },
-		// Test{
-		// 	Name:             "correctly retrieves valid entry (value only)",
-		// 	Path:             "/entries",
-		// 	Body:             []byte(`[{"value":92236854775807}]`),
-		// 	ExpectedCode:     200,
-		// 	ExpectedResponse: "",
-		// 	Method:           "POST",
-		// },
-		// Test{
-		// 	Name:             "adds new key if doesnt exist",
-		// 	Path:             "/entries",
-		// 	Body:             []byte(`[{"key":"testKey2432"}]`),
-		// 	ExpectedCode:     200,
-		// 	ExpectedResponse: "",
-		// 	Method:           "POST",
-		// },
-		// Test{
-		// 	Name:             "validates bad int type",
-		// 	Path:             "/entries",
-		// 	Body:             []byte(`[{"value":"0"}]`),
-		// 	ExpectedCode:     400,
-		// 	ExpectedResponse: "{\"Code\":400,\"Error\":\"json: cannot unmarshal string into Go struct field Entry.value of type int\"}",
-		// 	Method:           "POST",
-		// },
-		// Test{
-		// 	Name:             "bad jsob buffer",
-		// 	Path:             "/entries",
-		// 	Body:             []byte(`2085jf2 3j0d sdf}`),
-		// 	ExpectedCode:     400,
-		// 	ExpectedResponse: "{\"Code\":400,\"Error\":\"json: cannot unmarshal number into Go value of type []server.Entry\"}",
-		// 	Method:           "POST",
-		// },
+		Test{
+			Name:                  "correctly retrieves valid entry (key only)",
+			Path:                  "/entries",
+			Body:                  []byte(`[{"key":"testKey"}]`),
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			ExpectedErrors:        []string{},
+			Method:                "POST",
+		},
+		Test{
+			Name:                  "adds new key if doesnt exist",
+			Path:                  "/entries",
+			Body:                  []byte(`[{"key":"testKey2432"}]`),
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			ExpectedErrors:        []string{},
+			Method:                "POST",
+		},
+		Test{
+			Name:                  "validates bad int type",
+			Path:                  "/entries",
+			Body:                  []byte(`[{"value":"0"}]`),
+			ExpectedCode:          400,
+			ExpectedEntriesLength: 0,
+			ExpectedErrors:        []string{"json: cannot unmarshal string into Go struct field Entry.value of type int"},
+			Method:                "POST",
+		},
+		Test{
+			Name:                  "bad json buffer",
+			Path:                  "/entries",
+			Body:                  []byte(`2085jf2 3j0d sdf}`),
+			ExpectedCode:          400,
+			ExpectedEntriesLength: 0,
+			ExpectedErrors:        []string{"json: cannot unmarshal number into Go value of type []server.Entry"},
+			Method:                "POST",
+		},
 	}
 
 	for _, test := range testTable {
@@ -103,12 +99,22 @@ func TestRetrieveEntry(t *testing.T) {
 			req.Header.Add("Content-Type", "application/json")
 			router.ServeHTTP(w, req)
 			assert.Equal(t, test.ExpectedCode, w.Code)
-			resp := RetrieveEntryResponse{}
-			body := []byte(w.Body.String())
-			err := json.Unmarshal(body, &resp)
-			assert.Nil(t, err)
-			assert.Equal(t, test.ExpectedEntriesLength, len(resp.Entries))
-			assert.Equal(t, test.ExpectedErrors, resp.Errors)
+
+			if test.ExpectedCode == 200 {
+				resp := RetrieveEntryResponse{}
+				body := []byte(w.Body.String())
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedEntriesLength, len(resp.Entries))
+				assert.Equal(t, test.ExpectedErrors, resp.Errors)
+			} else {
+				resp := Error{}
+				body := []byte(w.Body.String())
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedErrors[0], resp.Error)
+				assert.Equal(t, test.ExpectedCode, resp.Code)
+			}
 		})
 
 	}
