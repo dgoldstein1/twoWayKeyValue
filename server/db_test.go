@@ -49,7 +49,7 @@ func TestWriteEntry(t *testing.T) {
 	defer v2k.Close()
 	t.Run("writes succesful entry to both DBs", func(t *testing.T) {
 		t.Run("adds correct entry to k:v", func(t *testing.T) {
-			key := "testing"
+			key := "adds correct entry to k:v"
 			e, err := WriteEntry(k2v, v2k, key)
 			assert.Nil(t, err)
 			// lookup in DB
@@ -63,9 +63,24 @@ func TestWriteEntry(t *testing.T) {
 				assert.Equal(t, strconv.Itoa(e.Value), string(v))
 				return nil
 			})
-
 		})
-		t.Run("adds correct entry to v:k", func(t *testing.T) {})
+		t.Run("adds correct entry to v:k", func(t *testing.T) {
+			key := "adds correct entry to v:k"
+			e, err := WriteEntry(k2v, v2k, key)
+			assert.Nil(t, err)
+			// lookup in DB
+			v2k.View(func(txn *badger.Txn) error {
+				valAsString := strconv.Itoa(e.Value)
+				item, err := txn.Get([]byte(valAsString))
+				assert.Nil(t, err)
+				assert.NotNil(t, item)
+				// assert correct key / value
+				assert.Equal(t, valAsString, string(item.Key()))
+				k, _ := item.Value()
+				assert.Equal(t, e.Key, string(k))
+				return nil
+			})
+		})
 		t.Run("does not add if key already exists", func(t *testing.T) {})
 	})
 
