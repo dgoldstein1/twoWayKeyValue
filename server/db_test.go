@@ -3,6 +3,7 @@ package server
 import (
 	badger "github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"os"
 	"strconv"
 	"testing"
@@ -49,7 +50,7 @@ func TestWriteEntry(t *testing.T) {
 	defer v2k.Close()
 	t.Run("writes succesful entry to both DBs", func(t *testing.T) {
 		t.Run("adds correct entry to k:v", func(t *testing.T) {
-			key := "adds correct entry to k:v"
+			key := strconv.Itoa(rand.Intn(INT_MAX))
 			e, err := WriteEntry(k2v, v2k, key)
 			assert.Nil(t, err)
 			// lookup in DB
@@ -65,7 +66,7 @@ func TestWriteEntry(t *testing.T) {
 			})
 		})
 		t.Run("adds correct entry to v:k", func(t *testing.T) {
-			key := "adds correct entry to v:k"
+			key := strconv.Itoa(rand.Intn(INT_MAX))
 			e, err := WriteEntry(k2v, v2k, key)
 			assert.Nil(t, err)
 			// lookup in DB
@@ -81,7 +82,16 @@ func TestWriteEntry(t *testing.T) {
 				return nil
 			})
 		})
-		t.Run("does not add if key already exists", func(t *testing.T) {})
+		t.Run("does not add if key already exists", func(t *testing.T) {
+			key := strconv.Itoa(rand.Intn(INT_MAX))
+			e, err := WriteEntry(k2v, v2k, key)
+			assert.Nil(t, err)
+			assert.NotNil(t, e)
+			// should fail on second write
+			e, err = WriteEntry(k2v, v2k, e.Key)
+			assert.NotNil(t, err)
+			assert.Equal(t, Entry{}, e)
+		})
 	})
 
 }
@@ -98,12 +108,10 @@ func TestGetEntries(t *testing.T) {
 	defer k2v.Close()
 	defer v2k.Close()
 	// write entry to DBs
-	key := "TESTING_KEY_1"
-	valAsString := "999"
-	_, err = WriteEntry(k2v, v2k, key)
-	if err != nil {
-		t.Fatal(err)
-	}
+	key := strconv.Itoa(rand.Intn(INT_MAX))
+	e, err := WriteEntry(k2v, v2k, key)
+	assert.Nil(t, err)
+	valAsString := strconv.Itoa(e.Value)
 	t.Run("Gets correct entries from string", func(t *testing.T) {
 		e, err := GetEntries(k2v, []string{key})
 		assert.Equal(t, []RetrievalError{}, err)

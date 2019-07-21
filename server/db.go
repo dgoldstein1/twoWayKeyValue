@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	badger "github.com/dgraph-io/badger"
 	"math/rand"
 	"os"
@@ -48,11 +49,47 @@ var INT_MAX = 9223372036854775807 // python max int
 func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) (Entry, error) {
 	v := rand.Intn(INT_MAX)
 	val := []byte(strconv.Itoa(v))
-	// assert that does not already exist
-
 	key := []byte(k)
+	// assert that keys and values do not already exist
+	err := v2k.View(func(txn *badger.Txn) error {
+		// keep creating random ints until is found
+		keyIsUnique := false
+		for !keyIsUnique {
+			_, err := txn.Get(val)
+			// key not found, stopping condition
+			if err != nil && err.Error() == KEY_NOT_FOUND {
+				keyIsUnique = true
+			} else if err != nil {
+				// normal error
+				return err
+			}
+			// key is found somewhere without error, find a new one
+			v = rand.Intn(INT_MAX)
+			val = []byte(strconv.Itoa(v))
+		}
+		return nil
+	})
+	// check that key doesnt exist
+	err = k2v.View(func(txn *badger.Txn) error {
+		_, err := txn.Get(key)
+		// expected KEY_NOT_FOUND error
+		if err == nil {
+			return fmt.Errorf("Entry already exists in DB for '%s'", k)
+		}
+		// normal error
+		if err.Error() != KEY_NOT_FOUND {
+			return err
+		}
+		// KEY_NOT_FOUND error thrown
+		return nil
+	})
+
+	// error on retrieval
+	if err != nil {
+		return Entry{}, err
+	}
 	// update k2v with k : v
-	err := k2v.Update(func(txn *badger.Txn) error {
+	err = k2v.Update(func(txn *badger.Txn) error {
 		return txn.Set(key, val)
 	})
 	// write v:k
