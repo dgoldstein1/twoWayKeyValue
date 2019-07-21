@@ -104,14 +104,6 @@ func TestRetrieveEntry(t *testing.T) {
 			Method:           "POST",
 		},
 		Test{
-			Name:             "fails on db error",
-			Path:             "/entries",
-			Body:             []byte(`[{"key":"keydoesntexist"}]`),
-			ExpectedCode:     404,
-			ExpectedResponse: "{error}",
-			Method:           "POST",
-		},
-		Test{
 			Name:             "bad jsob buffer",
 			Path:             "/entries",
 			Body:             []byte(`2085jf2 3j0d sdf}`),

@@ -87,8 +87,8 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 	}
 	// lookup all
 	entriesToReturn := []Entry{}
-	_, k2vErrors := GetEntries(s.K2v, k2vToFetch)
-	_, v2kErrors := GetEntries(s.V2k, v2kToFetch)
+	k2vEntries, k2vErrors := GetEntries(s.K2v, k2vToFetch)
+	v2kEntries, v2kErrors := GetEntries(s.V2k, v2kToFetch)
 	// pool errors
 	errors := []string{}
 	for _, e := range v2kErrors {
@@ -108,7 +108,16 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 		}
 	}
 	// combine into entries array
-
+	for _, key := range k2vEntries {
+		val, _ := strconv.Atoi(k2vEntries[key])
+		entriesToReturn = append(entriesToReturn, Entry{key, val})
+	}
+	for _, v := range v2kEntries {
+		val, _ := strconv.Atoi(v)
+		entriesToReturn = append(entriesToReturn, Entry{v2kEntries[v], val})
+	}
+	// finally return everything!!
+	c.JSON(200, RetrieveEntryResponse{errors, entriesToReturn})
 }
 
 // export db to file
