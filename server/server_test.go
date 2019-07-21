@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -39,8 +40,9 @@ func TestRetrieveEntry(t *testing.T) {
 		ExpectedErrors        []string
 		Method                string
 	}
+	// used for testing valid value lookup
+	validTestValue := ""
 
-	createdEntry := Entry{}
 	testTable := []Test{
 		Test{
 			Name:                  "correctly retrieves valid entry",
@@ -63,7 +65,7 @@ func TestRetrieveEntry(t *testing.T) {
 		Test{
 			Name:                  "correctly retrieves valid entry (value only)",
 			Path:                  "/entries",
-			Body:                  []byte(`[{"value":` + strconv.Itoa(createdEntry.Value) + `}]`),
+			Body:                  []byte(""), // set at execution time
 			ExpectedCode:          200,
 			ExpectedEntriesLength: 1,
 			ExpectedErrors:        []string{},
@@ -101,14 +103,18 @@ func TestRetrieveEntry(t *testing.T) {
 	for _, test := range testTable {
 		t.Run(test.Name, func(t *testing.T) {
 			w := httptest.NewRecorder()
+			if test.Name == "correctly retrieves valid entry (value only)" {
+				test.Body = []byte(`[{"value" : ` + string(validTestValue) + `}]`)
+			}
 			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer(test.Body))
 			req.Header.Add("Content-Type", "application/json")
 			router.ServeHTTP(w, req)
 			assert.Equal(t, test.ExpectedCode, w.Code)
 
+			fmt.Println(" ****> POST: " + string(test.Body))
+			body := []byte(w.Body.String())
 			if test.ExpectedCode == 200 {
 				resp := RetrieveEntryResponse{}
-				body := []byte(w.Body.String())
 				err := json.Unmarshal(body, &resp)
 				assert.Nil(t, err)
 				assert.Equal(t, test.ExpectedEntriesLength, len(resp.Entries))
@@ -116,11 +122,11 @@ func TestRetrieveEntry(t *testing.T) {
 				// set createdEntry on success
 				if len(resp.Entries) > 0 {
 					assert.NotEqual(t, 0, resp.Entries[0].Value)
-					createdEntry = resp.Entries[0]
+					validTestValue = strconv.Itoa(resp.Entries[0].Value)
+					assert.NotEqual(t, "0", validTestValue)
 				}
 			} else {
 				resp := Error{}
-				body := []byte(w.Body.String())
 				err := json.Unmarshal(body, &resp)
 				assert.Nil(t, err)
 				assert.Equal(t, test.ExpectedErrors[0], resp.Error)
