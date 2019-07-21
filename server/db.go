@@ -57,8 +57,8 @@ func WriteEntry(k2v *badger.DB, v2k *badger.DB, e Entry) error {
 }
 
 // retrieves entry using either key or value
-func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []error) {
-	errors := []error{}
+func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []RetrievalError) {
+	errors := []RetrievalError{}
 	entries := map[string]string{}
 	// read from DB
 	db.View(func(txn *badger.Txn) error {
@@ -66,13 +66,17 @@ func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []error) {
 		for _, k := range dbKeys {
 			item, err := txn.Get([]byte(k))
 			if err != nil {
-				errors = append(errors, err)
+				errors = append(errors, RetrievalError{
+					LookupId: k,
+					Error:    err.Error(),
+					NotFound: err.Error() == "Key not found",
+				})
 				break
 			}
 			// key exists
 			v, err := item.Value()
 			if err != nil {
-				errors = append(errors, err)
+				errors = append(errors, RetrievalError{k, err.Error(), false})
 			}
 			// add new Entry to list
 			entries[k] = string(v)

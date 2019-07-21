@@ -9,7 +9,7 @@ type Server struct {
 	K2v        *badger.DB
 	V2k        *badger.DB
 	WriteEntry func(*badger.DB, *badger.DB, Entry) error
-	GetEntries func(*badger.DB, []string) (map[string]string, []error)
+	GetEntries func(*badger.DB, []string) (map[string]string, []RetrievalError)
 }
 
 type Entry struct {
@@ -25,4 +25,12 @@ type RetrieveEntryResponse struct {
 type Error struct {
 	Code  int
 	Error string
+}
+
+// util struct for GetEntries
+type RetrievalError struct {
+	LookupId string // id passed to lookup in DB (either key or value)
+	Error    string // error on lookup
+	NotFound bool   // is the error that it wasn't found?
+
 }

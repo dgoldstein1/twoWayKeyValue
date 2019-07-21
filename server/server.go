@@ -86,15 +86,9 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 		}
 	}
 	// do lookup on both
-	_, errors := GetEntries(s.K2v, k2vToFetch)
-	_, errorsTemp := GetEntries(s.V2k, v2kToFetch)
+	GetEntries(s.K2v, k2vToFetch)
+	GetEntries(s.V2k, v2kToFetch)
 	// log errors
-	for _, e := range errorsTemp {
-		errors = append(errors, e)
-	}
-	for _, e := range errors {
-		logErr(e.Error())
-	}
 	// combine into entries array
 
 }

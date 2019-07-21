@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"errors"
 	badger "github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -33,20 +32,21 @@ func TestRetrieveEntry(t *testing.T) {
 	// mock out s.GetEntries DB calls
 	testKey := "testKey"
 	testval := "2523423426"
-	s.GetEntries = func(db *badger.DB, dbKeys []string) (map[string]string, []error) {
+	s.GetEntries = func(db *badger.DB, dbKeys []string) (map[string]string, []RetrievalError) {
 		e := map[string]string{}
 		// key passed
 		if len(dbKeys) == 1 && dbKeys[0] == testKey {
 			e[testKey] = testval
-			return e, []error{}
+			return e, []RetrievalError{}
 		}
 		// value passed
 		if len(dbKeys) == 1 && dbKeys[0] == testval {
 			e[testval] = testKey
-			return e, []error{}
+			return e, []RetrievalError{}
 		}
 		// simulate failure
-		return e, []error{errors.New("Key not found")}
+		err := RetrievalError{testKey, "Key not found", true}
+		return e, []RetrievalError{err}
 	}
 
 	type Test struct {
