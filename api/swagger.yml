@@ -9,38 +9,17 @@ servers:
     url: https://virtserver.swaggerhub.com/dgoldstein1/twoWayKeyValue/0.1.0
 
 paths:
-  /entry:
-    put:
-      summary: Adds a key:value entry. Keys and values must be unique.
-      requestBody:
-        required: true
-        content:
-          application/json:
-              schema:
-                $ref: '#/components/schemas/KeyValueEntry'
-      responses:
-        '200':
-          description: A entry in the database.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/KeyValueEntry'
-
-        '500':
-          description: Value must be unique.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
   /entries:
     post:
-      summary: Retrieves entries from the DB using keys or values.
+      summary: Retrieves entries from the DB using given keys or values. Creates entry if doesn't exist.
       requestBody:
         required: true
         content:
           application/json:
               schema:
-                $ref: '#/components/schemas/KeyValueEntryArray'
+                type: array
+                items:
+                    $ref: '#/components/schemas/KeyValueEntry'
 
 
       responses:
@@ -49,7 +28,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/KeyValueEntryArray'
+                $ref: '#/components/schemas/KeyValueEntryResponse'
 
         '500':
           description: Server Error
@@ -88,18 +67,18 @@ paths:
 components:
   schemas:
 
-    KeyValueEntryArray:
-      type: array
-      items:
-        type : object
-        required:
-          - key
-          - value
-        properties:
-          key:
-            type: string
-          value:
-            type: number
+    KeyValueEntryResponse:
+      type: object
+      properties:
+          entries:
+            type: array
+            items:
+                $ref: '#/components/schemas/KeyValueEntry'
+          errors:
+            type: array
+            items:
+              type: string
+
 
     KeyValueEntry:
       type: object

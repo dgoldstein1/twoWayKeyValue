@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/zsais/go-gin-prometheus"
 	"net/http"
+	"strconv"
 )
 
 // mock out logging calls for testing
@@ -58,18 +59,45 @@ func ValidatEntry(e Entry) error {
 
 // retrieve and try from db
 func (s *Server) RetreieveEntries(c *gin.Context) {
-	fmt.Println(c.Request.Body)
 	// read in request
-	entries := []Entry{}
-	if err := c.BindJSON(&entries); err != nil {
+	entriesPassed := []Entry{}
+	if err := c.BindJSON(&entriesPassed); err != nil {
 		c.JSON(400, Error{400, err.Error()})
 		return
 	}
-	if len(entries) == 0 {
+	if len(entriesPassed) == 0 {
 		c.JSON(400, "Bad []entry or no entries passed")
 		return
 	}
-	//
+	// create big array entries for keys and values
+	entriesToReturn := []Entry{}
+	k2vToFetch := []string{}
+	v2kToFetch := []string{}
+	for _, e := range entriesPassed {
+		// validate entry
+		if err := ValidatEntry(e); err != nil {
+			c.JSON(400, err.Error())
+			return
+		}
+		// if has key, lookup by key, else lookup by value
+		if e.Key != "" {
+			k2vToFetch = append(k2vToFetch, e.Key)
+		} else {
+			v2kToFetch = append(v2kToFetch, strconv.Itoa(e.Value))
+		}
+	}
+	// do lookup on both
+	k2vMap, errors := GetEntries(s.K2v, k2vToFetch)
+	v2kMap, errorsTemp := GetEntries(s.V2k, v2kToFetch)
+	// log errors
+	for _, e := range errorsTemp {
+		errors = append(errors, e)
+	}
+	for _, e := range errors {
+		logErr(e.Error())
+	}
+	// combine into entries array
+
 }
 
 // create new entry in db

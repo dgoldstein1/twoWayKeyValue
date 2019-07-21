@@ -35,8 +35,14 @@ func TestRetrieveEntry(t *testing.T) {
 	testval := "2523423426"
 	s.GetEntries = func(db *badger.DB, dbKeys []string) (map[string]string, []error) {
 		e := map[string]string{}
-		e[testKey] = testval
+		// key passed
 		if len(dbKeys) == 1 && dbKeys[0] == testKey {
+			e[testKey] = testval
+			return e, []error{}
+		}
+		// value passed
+		if len(dbKeys) == 1 && dbKeys[0] == testval {
+			e[testval] = testKey
 			return e, []error{}
 		}
 		// simulate failure
@@ -62,9 +68,17 @@ func TestRetrieveEntry(t *testing.T) {
 			Method:           "POST",
 		},
 		Test{
-			Name:             "correctly retrieves valid entry",
+			Name:             "correctly retrieves valid entry (key only)",
 			Path:             "/entries",
 			Body:             []byte(`[{"key":"testKey"}]`),
+			ExpectedCode:     200,
+			ExpectedResponse: "",
+			Method:           "POST",
+		},
+		Test{
+			Name:             "correctly retrieves valid entry (value only)",
+			Path:             "/entries",
+			Body:             []byte(`[{"value":"0"}]`),
 			ExpectedCode:     200,
 			ExpectedResponse: "",
 			Method:           "POST",
