@@ -93,6 +93,7 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 	errors := []string{}
 	for _, e := range v2kErrors {
 		errors = append(errors, e.Error)
+		logErr(e.Error)
 	}
 	for _, e := range k2vErrors {
 		if !e.NotFound {
@@ -103,18 +104,24 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 		entry, err := s.WriteEntry(s.K2v, s.V2k, e.LookupId)
 		if err != nil {
 			errors = append(errors, err.Error())
+			logErr(err.Error())
 		} else {
 			entriesToReturn = append(entriesToReturn, entry)
 		}
 	}
 	// combine into entries array
-	for _, key := range k2vEntries {
-		val, _ := strconv.Atoi(k2vEntries[key])
-		entriesToReturn = append(entriesToReturn, Entry{key, val})
+	for key, v := range k2vEntries {
+		val, err := strconv.Atoi(v)
+		if err != nil {
+			errors = append(errors, err.Error())
+			logErr("Could not convert value to int %s", v)
+		} else {
+			entriesToReturn = append(entriesToReturn, Entry{key, val})
+		}
 	}
-	for _, v := range v2kEntries {
+	for v, key := range v2kEntries {
 		val, _ := strconv.Atoi(v)
-		entriesToReturn = append(entriesToReturn, Entry{v2kEntries[v], val})
+		entriesToReturn = append(entriesToReturn, Entry{key, val})
 	}
 	// finally return everything!!
 	c.JSON(200, RetrieveEntryResponse{errors, entriesToReturn})
