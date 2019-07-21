@@ -49,8 +49,8 @@ func TestRetrieveEntry(t *testing.T) {
 		return e, []RetrievalError{err}
 	}
 
-	s.WriteEntry = func(d *badger.DB, b *badger.DB, s string) error {
-		return nil
+	s.WriteEntry = func(d *badger.DB, b *badger.DB, s string) (Entry, error) {
+		return Entry{}, nil
 	}
 
 	type Test struct {

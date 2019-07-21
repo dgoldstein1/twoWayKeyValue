@@ -2,7 +2,9 @@ package server
 
 import (
 	badger "github.com/dgraph-io/badger"
+	"math/rand"
 	"os"
+	"strconv"
 )
 
 // connects to both keyToValue and valueToKey store
@@ -40,14 +42,15 @@ func ConnectToDb() (*badger.DB, *badger.DB, error) {
 }
 
 var KEY_NOT_FOUND = "Key not found"
-var KEY_ALREADY_EXISTS = ""
+var INT_MAX = 9223372036854775807 // python max int
 
 // writes entry to both dbs
-func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) error {
+func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) (Entry, error) {
+	v := rand.Intn(INT_MAX)
+	val := []byte(strconv.Itoa(v))
 	// assert that does not already exist
 
 	key := []byte(k)
-	val := []byte("999")
 	// update k2v with k : v
 	err := k2v.Update(func(txn *badger.Txn) error {
 		return txn.Set(key, val)
@@ -56,7 +59,7 @@ func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) error {
 	err = v2k.Update(func(txn *badger.Txn) error {
 		return txn.Set(val, key)
 	})
-	return err
+	return Entry{k, v}, err
 }
 
 // retrieves entry using either key or value
