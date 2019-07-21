@@ -62,48 +62,56 @@ func TestRetrieveEntry(t *testing.T) {
 		Method           string
 	}
 
-	testTable := []Test{}
-	// 	Test{
-	// 		Name:             "correctly retrieves valid entry",
-	// 		Path:             "/entries",
-	// 		Body:             []byte(`[{"key":"testKey","value":0}]`),
-	// 		ExpectedCode:     200,
-	// 		ExpectedResponse: "",
-	// 		Method:           "POST",
-	// 	},
-	// 	Test{
-	// 		Name:             "correctly retrieves valid entry (key only)",
-	// 		Path:             "/entries",
-	// 		Body:             []byte(`[{"key":"testKey"}]`),
-	// 		ExpectedCode:     200,
-	// 		ExpectedResponse: "",
-	// 		Method:           "POST",
-	// 	},
-	// 	Test{
-	// 		Name:             "correctly retrieves valid entry (value only)",
-	// 		Path:             "/entries",
-	// 		Body:             []byte(`[{"value":"0"}]`),
-	// 		ExpectedCode:     200,
-	// 		ExpectedResponse: "",
-	// 		Method:           "POST",
-	// 	},
-	// 	Test{
-	// 		Name:             "fails on db error",
-	// 		Path:             "/entries",
-	// 		Body:             []byte(`[{"key":"keydoesntexist"}]`),
-	// 		ExpectedCode:     404,
-	// 		ExpectedResponse: "{error}",
-	// 		Method:           "POST",
-	// 	},
-	// 	Test{
-	// 		Name:             "bad jsob buffer",
-	// 		Path:             "/entries",
-	// 		Body:             []byte(`2085jf2 3j0d sdf}`),
-	// 		ExpectedCode:     400,
-	// 		ExpectedResponse: "{\"Code\":400,\"Error\":\"json: cannot unmarshal number into Go value of type []server.Entry\"}",
-	// 		Method:           "POST",
-	// 	},
-	// }
+	testTable := []Test{
+		Test{
+			Name:             "correctly retrieves valid entry",
+			Path:             "/entries",
+			Body:             []byte(`[{"key":"testKey","value":92238547725307}]`),
+			ExpectedCode:     200,
+			ExpectedResponse: "",
+			Method:           "POST",
+		},
+		Test{
+			Name:             "correctly retrieves valid entry (key only)",
+			Path:             "/entries",
+			Body:             []byte(`[{"key":"testKey"}]`),
+			ExpectedCode:     200,
+			ExpectedResponse: "",
+			Method:           "POST",
+		},
+		Test{
+			Name:             "correctly retrieves valid entry (value only)",
+			Path:             "/entries",
+			Body:             []byte(`[{"value":92236854775807}]`),
+			ExpectedCode:     200,
+			ExpectedResponse: "",
+			Method:           "POST",
+		},
+		Test{
+			Name:             "validates bad int type",
+			Path:             "/entries",
+			Body:             []byte(`[{"value":"0"}]`),
+			ExpectedCode:     400,
+			ExpectedResponse: "{\"Code\":400,\"Error\":\"json: cannot unmarshal string into Go struct field Entry.value of type int\"}",
+			Method:           "POST",
+		},
+		Test{
+			Name:             "fails on db error",
+			Path:             "/entries",
+			Body:             []byte(`[{"key":"keydoesntexist"}]`),
+			ExpectedCode:     404,
+			ExpectedResponse: "{error}",
+			Method:           "POST",
+		},
+		Test{
+			Name:             "bad jsob buffer",
+			Path:             "/entries",
+			Body:             []byte(`2085jf2 3j0d sdf}`),
+			ExpectedCode:     400,
+			ExpectedResponse: "{\"Code\":400,\"Error\":\"json: cannot unmarshal number into Go value of type []server.Entry\"}",
+			Method:           "POST",
+		},
+	}
 
 	for _, test := range testTable {
 		t.Run(test.Name, func(t *testing.T) {
