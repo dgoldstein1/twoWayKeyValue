@@ -50,8 +50,7 @@ func TestWriteEntry(t *testing.T) {
 	t.Run("writes succesful entry to both DBs", func(t *testing.T) {
 		key := "testing"
 		val := 999
-		entry := Entry{key, val}
-		err := WriteEntry(k2v, v2k, entry)
+		err := WriteEntry(k2v, v2k, key)
 		assert.Nil(t, err)
 		t.Run("adds correct entry to k:v", func(t *testing.T) {
 			k2v.View(func(txn *badger.Txn) error {
@@ -89,6 +88,12 @@ func TestWriteEntry(t *testing.T) {
 				return nil
 			})
 		})
+		t.Run("does not add if key already exists", func(t *testing.T) {
+			testKey := "osijdfoijsdfoijsfd"
+			err := WriteEntry(k2v, v2k, testKey)
+			err = WriteEntry(k2v, v2k, testKey)
+			assert.NotNil(t, err)
+		})
 	})
 
 }
@@ -106,10 +111,8 @@ func TestGetEntries(t *testing.T) {
 	defer v2k.Close()
 	// write entry to DBs
 	key := "TESTING_KEY_1"
-	val := 234235
-	valAsString := "234235"
-	entry := Entry{key, val}
-	err = WriteEntry(k2v, v2k, entry)
+	valAsString := "999"
+	err = WriteEntry(k2v, v2k, key)
 	if err != nil {
 		t.Fatal(err)
 	}

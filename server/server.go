@@ -93,11 +93,6 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 
 }
 
-// create new entry in db
-func (s *Server) CreateEntry(c *gin.Context) {
-
-}
-
 // export db to file
 func (s *Server) ExportDB(c *gin.Context) {
 

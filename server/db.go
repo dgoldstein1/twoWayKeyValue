@@ -3,7 +3,6 @@ package server
 import (
 	badger "github.com/dgraph-io/badger"
 	"os"
-	"strconv"
 )
 
 // connects to both keyToValue and valueToKey store
@@ -40,11 +39,15 @@ func ConnectToDb() (*badger.DB, *badger.DB, error) {
 	return keysToValuesDB, valuesToKeysDB, err
 }
 
+var KEY_NOT_FOUND = "Key not found"
+var KEY_ALREADY_EXISTS = ""
+
 // writes entry to both dbs
-func WriteEntry(k2v *badger.DB, v2k *badger.DB, e Entry) error {
-	// cast value as int -> byte(string)
-	val := []byte(strconv.Itoa(e.Value))
-	key := []byte(e.Key)
+func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) error {
+	// assert that does not already exist
+
+	key := []byte(k)
+	val := []byte("999")
 	// update k2v with k : v
 	err := k2v.Update(func(txn *badger.Txn) error {
 		return txn.Set(key, val)
@@ -69,7 +72,7 @@ func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []RetrievalE
 				errors = append(errors, RetrievalError{
 					LookupId: k,
 					Error:    err.Error(),
-					NotFound: err.Error() == "Key not found",
+					NotFound: err.Error() == KEY_NOT_FOUND,
 				})
 				break
 			}
