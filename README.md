@@ -24,6 +24,7 @@ docker pull dgoldstein1/twowaykv:latest
 ```sh
 export GRAPH_DB_STORE_DIR="/tmp/twowaykv"
 export GRAPH_DB_STORE_PORT="5001"
+export GRAPH_DOCS_DIR="./api/*"
 ./twowaykv
 ```
 

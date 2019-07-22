@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	"bytes"
@@ -29,7 +29,7 @@ func TestValidateEntry(t *testing.T) {
 
 func TestRetrieveEntry(t *testing.T) {
 	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
-	router, _ := SetupRouter("*")
+	router, _ := SetupRouter("./api/*")
 
 	type Test struct {
 		Name                  string
@@ -95,7 +95,7 @@ func TestRetrieveEntry(t *testing.T) {
 			Body:                  []byte(`2085jf2 3j0d sdf}`),
 			ExpectedCode:          400,
 			ExpectedEntriesLength: 0,
-			ExpectedErrors:        []string{"json: cannot unmarshal number into Go value of type []server.Entry"},
+			ExpectedErrors:        []string{"json: cannot unmarshal number into Go value of type []main.Entry"},
 			Method:                "POST",
 		},
 	}

@@ -1,21 +1,13 @@
-package server
+package main
 
 import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"github.com/zsais/go-gin-prometheus"
 	"net/http"
 	"strconv"
 )
-
-// mock out logging calls for testing
-var logFatalf = log.Fatalf
-var logWarn = log.Warnf
-var logMsg = log.Infof
-var logErr = log.Errorf
-var logDebug = log.Debugf
 
 // entrypoint
 func SetupRouter(docs string) (*gin.Engine, *Server) {

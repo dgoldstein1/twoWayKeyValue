@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	badger "github.com/dgraph-io/badger"

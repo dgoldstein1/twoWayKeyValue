@@ -38,6 +38,7 @@ func TestParseEnv(t *testing.T) {
 	requiredEnvs := []string{
 		"GRAPH_DB_STORE_DIR",
 		"GRAPH_DB_STORE_PORT",
+		"GRAPH_DOCS_DIR",
 	}
 
 	for _, v := range requiredEnvs {
