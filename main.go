@@ -59,8 +59,7 @@ func main() {
 				r, _ := SetupRouter(os.Getenv("GRAPH_DOCS_DIR"))
 				port := os.Getenv("GRAPH_DB_STORE_PORT")
 				// run indefinitely
-				logFatalf("%v", r.Run(fmt.Sprintf(":%s", port)))
-				return nil
+				return r.Run(fmt.Sprintf(":%s", port))
 			},
 		},
 	}
