@@ -50,7 +50,7 @@ func main() {
 	app.Version = "0.1.0"
 	app.Commands = []cli.Command{
 		{
-			Name:    "start",
+			Name:    "serve",
 			Aliases: []string{"s"},
 			Usage:   "crawl on wikipedia articles",
 			Action: func(c *cli.Context) error {
