@@ -2,9 +2,8 @@
 
 Web server for easy look up of value -> key and key -> value, for integration with [big-data graph DB](https://github.com/dgoldstein1/graphApi). Uses [BadgerDB](https://github.com/dgraph-io/badger) as underlying store.
 
-- Maintainability
-- Test
-- CircleCI
+[![CircleCI](https://circleci.com/gh/dgoldstein1/twoWayKeyValue.svg?style=svg)](https://circleci.com/gh/dgoldstein1/twoWayKeyValue)
+[![Maintainability](https://api.codeclimate.com/v1/badges/6eceadfcf002700fdd2a/maintainability)](https://codeclimate.com/github/dgoldstein1/twoWayKeyValue/maintainability)
 
 ## Install
 
@@ -25,6 +24,7 @@ docker pull dgoldstein1/twowaykv:latest
 <<<<<<< Updated upstream
 export GRAPH_DB_STORE_DIR="/tmp/twowaykv"
 export GRAPH_DB_STORE_PORT="5001"
+export GRAPH_DOCS_DIR="./api/*"
 ./twowaykv
 =======
 export GRAPH_DB_STORE_DIR="/tmp/twowaykv" # storage directory

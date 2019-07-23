@@ -9,63 +9,29 @@ servers:
     url: https://virtserver.swaggerhub.com/dgoldstein1/twoWayKeyValue/0.1.0
 
 paths:
-  /entry:
+  /entries:
     post:
-      summary: Adds a key:value entry. Keys and values must be unique.
+      summary: Retrieves entries from the DB using given keys or values. Creates entry if doesn't exist, although only creates new entries on 'Key' value.
       requestBody:
         required: true
         content:
           application/json:
               schema:
-                $ref: '#/components/schemas/KeyValueEntry'
-      responses:
-        '200':
-          description: A entry in the database.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/KeyValueEntry'
+                type: array
+                items:
+                    $ref: '#/components/schemas/KeyValueEntry'
 
-        '500':
-          description: Value must be unique.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-                
-    get:
-      summary: Retrieves entry from the DB using a key or value.
-      parameters:
-        - in: query
-          name: key
-          schema:
-            type: string
-          required: true
-          description: key of the entry to retrieve
-        - in: query
-          name: value
-          schema:
-            type: number
-          required: true
-          description: value of the entry to retrieve      
-          
+
       responses:
         '200':
           description: An entry in the database
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/KeyValueEntry'
-
-        '404':
-          description: entry does not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/KeyValueEntryResponse'
 
         '500':
-          description: Value must be unique.
+          description: Server Error
           content:
             application/json:
               schema:
@@ -100,6 +66,20 @@ paths:
 
 components:
   schemas:
+
+    KeyValueEntryResponse:
+      type: object
+      properties:
+          entries:
+            type: array
+            items:
+                $ref: '#/components/schemas/KeyValueEntry'
+          errors:
+            type: array
+            items:
+              type: string
+
+
     KeyValueEntry:
       type: object
       required:
@@ -109,15 +89,8 @@ components:
         key:
           type: string
         value:
-              type: number
-    EdgesResponse:
-      type: object
-      properties:
-        neighborsAdded:
-          description: new neighbors added to the current node (which were not currently there)
-          type: array
-          items:
-            type: string
+          type: number
+
     Error:
       type: object
       properties:
