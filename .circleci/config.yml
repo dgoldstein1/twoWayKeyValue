@@ -39,9 +39,12 @@ jobs:
 
   # run unit tests
   unit-tests:
-    <<: *defaults
+    docker:
+      - image: circleci/golang:latest
+    working_directory: /go/src/github.com/dgoldstein1/twoWayKeyValue
     steps:
       - checkout
+      - run: echo 'export GO111MODULE=on' >> $BASH_ENV 
       - attach_workspace:
           at: .
       - run:
