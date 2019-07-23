@@ -1,0 +1,146 @@
+
+defaults: &defaults
+  docker:
+    - image: circleci/golang:latest
+
+version: 2
+jobs:
+
+  ###################
+  ## Core Utilties ##
+  ###################
+
+  # install depdencencies
+  install:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: go install 
+
+
+  # build go binary and save it to workspace
+  build:
+    <<: *defaults
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run: go build -o build/twowaykc
+      - run: build/twowaykc --version
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./build/twowaykc
+
+
+  #############
+  ## Testing ##
+  #############
+
+  # run unit tests
+  unit-tests:
+    <<: *defaults
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name : "run unit tests"
+          command : |
+            go test ./... -coverprofile=coverage.out
+
+
+      - run:
+          name : "Push results to code coverage (master only)"
+          command : |
+            if [[ "$CIRCLE_BRANCH" == "master" ]]; then
+              export CC_TEST_REPORTER_ID=5ab90794020750b5ead66572e401807b96f65f36ffb6e960390f676f22c09895
+              curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+              chmod +x ./cc-test-reporter
+              ./cc-test-reporter format-coverage ./coverage.out -t gocov
+              ./cc-test-reporter upload-coverage
+            fi
+
+
+  # run full integration tests
+  integration-tests:
+    <<: *defaults
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name : "run integration tests"
+          command : |
+            echo "TODO"
+
+
+  ############################
+  ## Tasks for New Releases ##
+  ############################
+
+  push-docker-image:
+    machine : true
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name : "build and push docker images"
+          command : |
+              export $(cat VERSION | xargs)
+              docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+              docker build . -t dgoldstein1/twowaykc:$VERSION -t dgoldstein1/twowaykc:latest
+              docker push dgoldstein1/twowaykc:$VERSION
+              docker push dgoldstein1/twowaykc:latest
+
+  # publish github release with binary
+  publish-github-release:
+    docker:
+      - image: cibuilds/github:0.10
+    steps:
+      - checkout
+      # get binaries
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Publish Release on GitHub"
+          command: |
+            export $(cat VERSION | xargs)
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./build/twowaykc
+
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - install
+      - build:
+          requires:
+            - install
+
+      - unit-tests:
+          requires:
+            - build
+
+      - integration-tests:
+          requires:
+            - build
+
+
+      - push-docker-image:
+          requires:
+            - unit-tests
+            - integration-tests
+          filters:
+            branches:
+              only: master
+
+      - publish-github-release:
+          requires:
+            - unit-tests
+            - integration-tests
+
+          filters:
+            branches:
+              only: master

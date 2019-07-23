@@ -6,5 +6,6 @@ ENV PATH $GOBIN:/usr/local/go/bin:$PATH
 
 COPY build $GOBIN
 RUN twowaykv --version
+ENV COMMAND "serve"
 
-CMD ["twowaykv","$COMMAND"]
+CMD twowaykv $COMMAND

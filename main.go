@@ -1,15 +1,19 @@
 package main
 
 import (
-	// "github.com/dgoldstein1/twoWayKeyValue/server"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"os"
 	"strconv"
 )
 
+// mock out logging calls for testing
 var logFatalf = log.Fatalf
+var logWarn = log.Warnf
 var logMsg = log.Infof
+var logErr = log.Errorf
+var logDebug = log.Debugf
 
 // checks environment for required env vars
 func parseEnv() {
@@ -19,6 +23,7 @@ func parseEnv() {
 	requiredEnvs := []string{
 		"GRAPH_DB_STORE_DIR",
 		"GRAPH_DB_STORE_PORT",
+		"GRAPH_DOCS_DIR",
 	}
 	for _, v := range requiredEnvs {
 		if os.Getenv(v) == "" {
@@ -45,14 +50,16 @@ func main() {
 	app.Version = "0.1.0"
 	app.Commands = []cli.Command{
 		{
-			Name:    "start",
+			Name:    "serve",
 			Aliases: []string{"s"},
 			Usage:   "crawl on wikipedia articles",
 			Action: func(c *cli.Context) error {
 				parseEnv()
-				// port, _ := strconv.Atoi(os.Getenv("GRAPH_DB_STORE_PORT"))
-
-				return nil
+				// port has already been validated
+				r, _ := SetupRouter(os.Getenv("GRAPH_DOCS_DIR"))
+				port := os.Getenv("GRAPH_DB_STORE_PORT")
+				// run indefinitely
+				return r.Run(fmt.Sprintf(":%s", port))
 			},
 		},
 	}
