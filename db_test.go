@@ -3,6 +3,7 @@ package main
 import (
 	badger "github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"math/rand"
 	"os"
 	"strconv"
@@ -34,6 +35,25 @@ func TestConnectToDb(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.Nil(t, db)
 		assert.Nil(t, db2)
+	})
+
+	t.Run("loads db if already exists", func(t *testing.T) {
+		loadPath := "/tmp/twowaykv/iotest/" + strconv.Itoa(rand.Intn(INT_MAX))
+		err := os.MkdirAll(loadPath, os.ModePerm)
+		require.NoError(t, err)
+		defer os.RemoveAll(loadPath)
+		// create temp databases in random new dir
+		os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+		db, db2, err := ConnectToDb()
+		require.Nil(t, err)
+		require.NotNil(t, db)
+		require.NotNil(t, db2)
+		lsm, _ := db.Size()
+		assert.Equal(t, lsm >= 0, true)
+		defer db.Close()
+		defer db2.Close()
+		// save to random new paths
+
 	})
 }
 

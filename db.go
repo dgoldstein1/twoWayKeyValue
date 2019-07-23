@@ -11,10 +11,13 @@ import (
 // connects to both keyToValue and valueToKey store
 func ConnectToDb() (*badger.DB, *badger.DB, error) {
 	dir := os.Getenv("GRAPH_DB_STORE_DIR")
+	v2kPath := dir + "/v2k"
+	k2vPath := dir + "/k2v"
+
 	// setup db properties
 	options := badger.Options{
-		Dir:                     dir + "/keysToValues",
-		ValueDir:                dir + "/keysToValues",
+		Dir:                     k2vPath,
+		ValueDir:                k2vPath,
 		LevelOneSize:            256 << 20,
 		LevelSizeMultiplier:     10,
 		MaxLevels:               7,
@@ -31,15 +34,15 @@ func ConnectToDb() (*badger.DB, *badger.DB, error) {
 		Truncate:                false,
 	}
 	// create keys => values DB
-	keysToValuesDB, err := badger.Open(options)
+	k2v, err := badger.Open(options)
 	if err != nil {
 		return nil, nil, err
 	}
 	// create values => keys DB
-	options.Dir = dir + "/valuesToKeys"
-	options.ValueDir = dir + "/valuesToKeys"
-	valuesToKeysDB, err := badger.Open(options)
-	return keysToValuesDB, valuesToKeysDB, err
+	options.Dir = v2kPath
+	options.ValueDir = v2kPath
+	v2k, err := badger.Open(options)
+	return k2v, v2k, err
 }
 
 var KEY_NOT_FOUND = "Key not found"
