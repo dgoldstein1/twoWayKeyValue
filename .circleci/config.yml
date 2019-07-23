@@ -13,18 +13,6 @@ jobs:
   ## Core Utilties ##
   ###################
 
-  # install depdencencies
-  install:
-    <<: *defaults
-    steps:
-      - checkout
-      - run: go install
-      - persist_to_workspace:
-          root : .
-          paths:
-            - ./vendor
-
-
   # build go binary and save it to workspace
   build:
     <<: *defaults
@@ -121,11 +109,8 @@ workflows:
   version: 2
   build-deploy:
     jobs:
-      - install
-      - build:
-          requires:
-            - install
 
+      - build
       - unit-tests:
           requires:
             - build
