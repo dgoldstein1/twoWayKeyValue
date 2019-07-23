@@ -44,15 +44,26 @@ func TestConnectToDb(t *testing.T) {
 		defer os.RemoveAll(loadPath)
 		// create temp databases in random new dir
 		os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
-		db, db2, err := ConnectToDb()
+		k2v, v2k, err := ConnectToDb()
 		require.Nil(t, err)
-		require.NotNil(t, db)
-		require.NotNil(t, db2)
-		lsm, _ := db.Size()
+		require.NotNil(t, k2v)
+		require.NotNil(t, v2k)
+		lsm, _ := k2v.Size()
 		assert.Equal(t, lsm >= 0, true)
-		defer db.Close()
-		defer db2.Close()
-		// save to random new paths
+		defer k2v.Close()
+		defer v2k.Close()
+		// write an entry
+		testKey := []byte("testingKey")
+		testVal := []byte("testingValue")
+		err = k2v.Update(func(txn *badger.Txn) error {
+			return txn.Set(testKey, testVal)
+		})
+		require.Nil(t, err)
+		err = v2k.Update(func(txn *badger.Txn) error {
+			return txn.Set(testVal, testKey)
+		})
+		require.Nil(t, err)
+		// backup DB
 
 	})
 }
