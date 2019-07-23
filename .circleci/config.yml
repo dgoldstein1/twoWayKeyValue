@@ -1,7 +1,10 @@
 
 defaults: &defaults
   docker:
-    - image: circleci/golang:latest
+    - image: circleci/golang:1.12
+  working_directory: /go/src/github.com/dgoldstein1/twowaykv
+  environment:
+    GO111MODULE: "on"
 
 version: 2
 jobs:
@@ -15,7 +18,11 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - run: go install 
+      - run: go install
+      - persist_to_workspace:
+          root : .
+          paths:
+            - ./vendor
 
 
   # build go binary and save it to workspace
@@ -25,12 +32,12 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - run: go build -o build/twowaykc
-      - run: build/twowaykc --version
+      - run: go build -o build/twowaykv
+      - run: build/twowaykv --version
       - persist_to_workspace:
           root: .
           paths:
-            - ./build/twowaykc
+            - ./build/twowaykv
 
 
   #############
@@ -39,12 +46,9 @@ jobs:
 
   # run unit tests
   unit-tests:
-    docker:
-      - image: circleci/golang:latest
-    working_directory: /go/src/github.com/dgoldstein1/twoWayKeyValue
+    <<: *defaults
     steps:
       - checkout
-      - run: echo 'export GO111MODULE=on' >> $BASH_ENV 
       - attach_workspace:
           at: .
       - run:
@@ -88,16 +92,14 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - run: echo 'export GO111MODULE=on' >> $BASH_ENV
-      - run: go build -o build/twowaykc
       - run:
           name : "build and push docker images"
           command : |
               export $(cat VERSION | xargs)
               docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-              docker build . -t dgoldstein1/twowaykc:$VERSION -t dgoldstein1/twowaykc:latest
-              docker push dgoldstein1/twowaykc:$VERSION
-              docker push dgoldstein1/twowaykc:latest
+              docker build . -t dgoldstein1/twowaykv:$VERSION -t dgoldstein1/twowaykv:latest
+              docker push dgoldstein1/twowaykv:$VERSION
+              docker push dgoldstein1/twowaykv:latest
 
   # publish github release with binary
   publish-github-release:
@@ -112,7 +114,7 @@ jobs:
           name: "Publish Release on GitHub"
           command: |
             export $(cat VERSION | xargs)
-            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./build/twowaykc
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./build/twowaykv
 
 
 workflows:
