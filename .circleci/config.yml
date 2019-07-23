@@ -88,6 +88,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
+      - run: echo 'export GO111MODULE=on' >> $BASH_ENV
       - run: go build -o build/twowaykc
       - run:
           name : "build and push docker images"
