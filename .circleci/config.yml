@@ -16,12 +16,7 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      - run: go get -u github.com/golang/dep/cmd/dep
-      - run: dep ensure -v
-      - persist_to_workspace:
-          root : .
-          paths:
-            - ./vendor
+      - run: go install
 
 
   # build go binary and save it to workspace
