@@ -21,17 +21,10 @@ docker pull dgoldstein1/twowaykv:latest
 ## Run it
 
 ```sh
-<<<<<<< Updated upstream
-export GRAPH_DB_STORE_DIR="/tmp/twowaykv"
-export GRAPH_DB_STORE_PORT="5001"
-export GRAPH_DOCS_DIR="./api/*"
-./twowaykv
-=======
 export GRAPH_DB_STORE_DIR="/tmp/twowaykv" # storage directory
 export GRAPH_DB_STORE_PORT="5001" # port served on
 export GRAPH_DOCS_DIR="./api/*" # location of docs (warning: this entire dir is served up to the browser)
 ./twowaykv server
->>>>>>> Stashed changes
 ```
 
 
