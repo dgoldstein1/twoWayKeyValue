@@ -1,4 +1,4 @@
-module github.com/dgoldstein1/twoWayKeyValue
+module github.com/dgoldstein1/twowaykv
 
 go 1.12
 

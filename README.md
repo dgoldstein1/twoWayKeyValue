@@ -1,9 +1,10 @@
-# Two Way Key Map Store
+# twowaykv
 
 Web server for easy look up of value -> key and key -> value, for integration with [big-data graph DB](https://github.com/dgoldstein1/graphApi). Uses [BadgerDB](https://github.com/dgraph-io/badger) as underlying store.
 
-[![CircleCI](https://circleci.com/gh/dgoldstein1/twoWayKeyValue.svg?style=svg)](https://circleci.com/gh/dgoldstein1/twoWayKeyValue)
-[![Maintainability](https://api.codeclimate.com/v1/badges/6eceadfcf002700fdd2a/maintainability)](https://codeclimate.com/github/dgoldstein1/twoWayKeyValue/maintainability)
+[![CircleCI](https://circleci.com/gh/dgoldstein1/twowaykv.svg?style=svg)](https://circleci.com/gh/dgoldstein1/twowaykv)
+[![Maintainability](https://api.codeclimate.com/v1/badges/6577886aa2f88c77bfc2/maintainability)](https://codeclimate.com/github/dgoldstein1/twowaykv/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/6577886aa2f88c77bfc2/test_coverage)](https://codeclimate.com/github/dgoldstein1/twowaykv/test_coverage)
 
 ## Install
 
