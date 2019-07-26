@@ -1,12 +1,11 @@
 package main
 
 import (
-	"archive/zip"
 	"fmt"
 	badger "github.com/dgraph-io/badger"
-	"io"
 	"math/rand"
 	"os"
+	"os/exec"
 	"strconv"
 )
 
@@ -142,52 +141,13 @@ func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []RetrievalE
 func ZipDb() (fileName string, err error) {
 	dir := os.Getenv("GRAPH_DB_STORE_DIR")
 	fileName = dir + "/twowaykv_export.zip"
-	newZipFile, err := os.Create(fileName)
-	if err != nil {
-		return fileName, err
-	}
-	defer newZipFile.Close()
-	zipWriter := zip.NewWriter(newZipFile)
-	defer zipWriter.Close()
-
-	// Add fileNames to zip
-	files := []string{
-		dir + K2V_PATH,
-		dir + V2K_PATH,
-	}
-	for _, file := range files {
-		if err = AddFileToZip(zipWriter, file); err != nil {
-			return fileName, err
-		}
-	}
+	// run zip command in bash
+	err = exec.Command(
+		"zip",
+		"-r",
+		fileName,
+		dir+K2V_PATH,
+		dir+V2K_PATH,
+	).Run()
 	return fileName, err
-}
-
-func AddFileToZip(zipWriter *zip.Writer, filename string) error {
-	fileToZip, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer fileToZip.Close()
-	// Get the file information
-	info, err := fileToZip.Stat()
-	if err != nil {
-		return err
-	}
-	header, err := zip.FileInfoHeader(info)
-	if err != nil {
-		return err
-	}
-	// Using FileInfoHeader() above only uses the basename of the file. If we want
-	// to preserve the folder structure we can overwrite this with the full path.
-	header.Name = filename
-	// Change to deflate to gain better compression
-	// see http://golang.org/pkg/archive/zip/#pkg-constants
-	header.Method = zip.Deflate
-	writer, err := zipWriter.CreateHeader(header)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(writer, fileToZip)
-	return err
 }

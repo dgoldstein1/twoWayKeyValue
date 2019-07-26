@@ -213,8 +213,8 @@ func TestZipDb(t *testing.T) {
 	t.Run("zips and returns real file sucesfully", func(t *testing.T) {
 		loadPath := "/tmp/twowaykv/iotest/" + strconv.Itoa(rand.Intn(INT_MAX))
 		err := os.MkdirAll(loadPath, os.ModePerm)
-		require.NoError(t, err)
 		defer os.RemoveAll(loadPath)
+		require.NoError(t, err)
 		// create temp databases in random new dir
 		os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
 		// open up db and close it
