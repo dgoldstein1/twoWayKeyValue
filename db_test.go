@@ -50,8 +50,6 @@ func TestConnectToDb(t *testing.T) {
 		require.NotNil(t, v2k)
 		lsm, _ := k2v.Size()
 		assert.Equal(t, lsm >= 0, true)
-		defer k2v.Close()
-		defer v2k.Close()
 		// write an entry
 		testKey := []byte("testingKey")
 		testVal := []byte("testingValue")
@@ -63,8 +61,30 @@ func TestConnectToDb(t *testing.T) {
 			return txn.Set(testVal, testKey)
 		})
 		require.Nil(t, err)
-		// backup DB
-
+		// close and reopen
+		k2v.Close()
+		v2k.Close()
+		k2v, v2k, err = ConnectToDb()
+		require.Nil(t, err)
+		require.NotNil(t, k2v)
+		require.NotNil(t, v2k)
+		// make sure entries are still there
+		err = k2v.View(func(txn *badger.Txn) error {
+			item, err := txn.Get(testKey)
+			require.Nil(t, err)
+			v, err := item.Value()
+			assert.Equal(t, testVal, v)
+			return err
+		})
+		require.Nil(t, err)
+		err = v2k.View(func(txn *badger.Txn) error {
+			item, err := txn.Get(testVal)
+			require.Nil(t, err)
+			k, err := item.Value()
+			assert.Equal(t, testKey, k)
+			return err
+		})
+		require.Nil(t, err)
 	})
 }
 
