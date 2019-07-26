@@ -119,7 +119,7 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 	c.JSON(200, RetrieveEntryResponse{errors, entriesToReturn})
 }
 
-// export db to file
+// stream zipped file over browser
 func (s *Server) ExportDB(c *gin.Context) {
-
+	c.JSON(500, Error{500, "Not implemented"})
 }

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -125,6 +127,59 @@ func TestRetrieveEntry(t *testing.T) {
 					validTestValue = strconv.Itoa(resp.Entries[0].Value)
 					assert.NotEqual(t, "0", validTestValue)
 				}
+			} else {
+				resp := Error{}
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedErrors[0], resp.Error)
+				assert.Equal(t, test.ExpectedCode, resp.Code)
+			}
+		})
+
+	}
+}
+
+func TestExportDb(t *testing.T) {
+	loadPath := "/tmp/twowaykv/iotest/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	require.NoError(t, err)
+	defer os.RemoveAll(loadPath)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	router, _ := SetupRouter("./api/*")
+
+	type Test struct {
+		Name           string
+		Path           string
+		Body           []byte
+		ExpectedCode   int
+		ExpectedErrors []string
+		Method         string
+	}
+	// used for testing valid value lookup
+
+	testTable := []Test{
+		Test{
+			Name:           "returns error if file could not be found",
+			Path:           "/save",
+			Body:           []byte(""),
+			ExpectedCode:   500,
+			ExpectedErrors: []string{"Not implemented"},
+			Method:         "GET",
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer(test.Body))
+			req.Header.Add("Content-Type", "application/json")
+			router.ServeHTTP(w, req)
+			assert.Equal(t, test.ExpectedCode, w.Code)
+
+			fmt.Println(" ****> GET: " + test.Path)
+			body := []byte(w.Body.String())
+			if test.ExpectedCode == 200 {
+				// TODO
 			} else {
 				resp := Error{}
 				err := json.Unmarshal(body, &resp)
