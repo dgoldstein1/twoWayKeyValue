@@ -1,20 +1,28 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	badger "github.com/dgraph-io/badger"
 	"math/rand"
 	"os"
+	"os/exec"
 	"strconv"
 )
+
+const V2K_PATH = "/v2k"
+const K2V_PATH = "/k2v"
 
 // connects to both keyToValue and valueToKey store
 func ConnectToDb() (*badger.DB, *badger.DB, error) {
 	dir := os.Getenv("GRAPH_DB_STORE_DIR")
+	v2kPath := dir + V2K_PATH
+	k2vPath := dir + K2V_PATH
+
 	// setup db properties
 	options := badger.Options{
-		Dir:                     dir + "/keysToValues",
-		ValueDir:                dir + "/keysToValues",
+		Dir:                     k2vPath,
+		ValueDir:                k2vPath,
 		LevelOneSize:            256 << 20,
 		LevelSizeMultiplier:     10,
 		MaxLevels:               7,
@@ -31,15 +39,15 @@ func ConnectToDb() (*badger.DB, *badger.DB, error) {
 		Truncate:                false,
 	}
 	// create keys => values DB
-	keysToValuesDB, err := badger.Open(options)
+	k2v, err := badger.Open(options)
 	if err != nil {
 		return nil, nil, err
 	}
 	// create values => keys DB
-	options.Dir = dir + "/valuesToKeys"
-	options.ValueDir = dir + "/valuesToKeys"
-	valuesToKeysDB, err := badger.Open(options)
-	return keysToValuesDB, valuesToKeysDB, err
+	options.Dir = v2kPath
+	options.ValueDir = v2kPath
+	v2k, err := badger.Open(options)
+	return k2v, v2k, err
 }
 
 var KEY_NOT_FOUND = "Key not found"
@@ -128,4 +136,22 @@ func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []RetrievalE
 		return nil
 	})
 	return entries, errors
+}
+
+// creates zip file of
+func ZipDb() (fileName string, err error) {
+	dir := os.Getenv("GRAPH_DB_STORE_DIR")
+	fileName = dir + "/twowaykv_export.zip"
+	// run zip command in bash
+	out, err := exec.Command(
+		"zip",
+		"-r",
+		fileName,
+		dir+K2V_PATH,
+		dir+V2K_PATH,
+	).Output()
+	if err != nil {
+		err = errors.New(string(out))
+	}
+	return fileName, err
 }

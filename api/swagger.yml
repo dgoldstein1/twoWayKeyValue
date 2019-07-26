@@ -51,9 +51,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /save:
+  /export:
     get:
-      summary: Streams underlying badgerDB file. Note that this endpoint can take 1+ minutes.
+      summary: Streams underlying badgerDB files in a ZIP archive.
       responses:
         '200':
           description: File stream of graph as a [Badger DB file](https://github.com/dgraph-io/badger).
