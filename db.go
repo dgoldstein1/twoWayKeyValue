@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	badger "github.com/dgraph-io/badger"
 	"math/rand"
@@ -142,12 +143,15 @@ func ZipDb() (fileName string, err error) {
 	dir := os.Getenv("GRAPH_DB_STORE_DIR")
 	fileName = dir + "/twowaykv_export.zip"
 	// run zip command in bash
-	err = exec.Command(
+	out, err := exec.Command(
 		"zip",
 		"-r",
 		fileName,
 		dir+K2V_PATH,
 		dir+V2K_PATH,
-	).Run()
+	).Output()
+	if err != nil {
+		err = errors.New(string(out))
+	}
 	return fileName, err
 }

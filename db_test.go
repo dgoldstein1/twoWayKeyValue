@@ -1,16 +1,17 @@
 package main
 
-import (
-	// badger "github.com/dgraph-io/badger"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"math/rand"
-	"os"
-	"strconv"
-	"testing"
-)
-
-var testingDir = "/tmp/twowaykv/temp"
+//
+// import (
+// 	// badger "github.com/dgraph-io/badger"
+// 	"github.com/stretchr/testify/assert"
+// 	"github.com/stretchr/testify/require"
+// 	"math/rand"
+// 	"os"
+// 	"strconv"
+// 	"testing"
+// )
+//
+// var testingDir = "/tmp/twowaykv/temp"
 
 // func TestConnectToDb(t *testing.T) {
 // 	// setup
@@ -191,42 +192,42 @@ var testingDir = "/tmp/twowaykv/temp"
 // 	})
 // 	t.Run("throws errors on incorrect lookup", func(t *testing.T) {})
 // }
-
-func TestZipDb(t *testing.T) {
-	t.Run("throws error when path does not exist", func(t *testing.T) {
-		os.Setenv("GRAPH_DB_STORE_DIR", "")
-		file, err := ZipDb()
-		assert.NotNil(t, err)
-		assert.Equal(t, "/twowaykv_export.zip", file)
-	})
-	t.Run("throws error when files do not exist", func(t *testing.T) {
-		loadPath := "/tmp/twowaykv/iotest/" + strconv.Itoa(rand.Intn(INT_MAX))
-		err := os.MkdirAll(loadPath, os.ModePerm)
-		require.NoError(t, err)
-		defer os.RemoveAll(loadPath)
-		// create temp databases in random new dir
-		os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
-		file, err := ZipDb()
-		assert.Equal(t, loadPath+"/twowaykv_export.zip", file)
-		assert.NotNil(t, err)
-	})
-	t.Run("zips and returns real file sucesfully", func(t *testing.T) {
-		loadPath := "/tmp/twowaykv/iotest/" + strconv.Itoa(rand.Intn(INT_MAX))
-		err := os.MkdirAll(loadPath, os.ModePerm)
-		defer os.RemoveAll(loadPath)
-		require.NoError(t, err)
-		// create temp databases in random new dir
-		os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
-		// open up db and close it
-		db, db1, err := ConnectToDb()
-		require.Nil(t, err)
-		defer db.Close()
-		defer db1.Close()
-		// attempt to create zip with created databases
-		file, err := ZipDb()
-		assert.Equal(t, loadPath+"/twowaykv_export.zip", file)
-		if err != nil {
-			t.Error(err)
-		}
-	})
-}
+//
+// func TestZipDb(t *testing.T) {
+// 	t.Run("throws error when path does not exist", func(t *testing.T) {
+// 		os.Setenv("GRAPH_DB_STORE_DIR", "")
+// 		file, err := ZipDb()
+// 		assert.NotNil(t, err)
+// 		assert.Equal(t, "/twowaykv_export.zip", file)
+// 	})
+// 	t.Run("throws error when files do not exist", func(t *testing.T) {
+// 		loadPath := "/tmp/twowaykv/iotest/" + strconv.Itoa(rand.Intn(INT_MAX))
+// 		err := os.MkdirAll(loadPath, os.ModePerm)
+// 		require.NoError(t, err)
+// 		defer os.RemoveAll(loadPath)
+// 		// create temp databases in random new dir
+// 		os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+// 		file, err := ZipDb()
+// 		assert.Equal(t, loadPath+"/twowaykv_export.zip", file)
+// 		assert.NotNil(t, err)
+// 	})
+// 	t.Run("zips and returns real file sucesfully", func(t *testing.T) {
+// 		loadPath := "/tmp/twowaykv/iotest/" + strconv.Itoa(rand.Intn(INT_MAX))
+// 		err := os.MkdirAll(loadPath, os.ModePerm)
+// 		defer os.RemoveAll(loadPath)
+// 		require.NoError(t, err)
+// 		// create temp databases in random new dir
+// 		os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+// 		// open up db and close it
+// 		db, db1, err := ConnectToDb()
+// 		require.Nil(t, err)
+// 		defer db.Close()
+// 		defer db1.Close()
+// 		// attempt to create zip with created databases
+// 		file, err := ZipDb()
+// 		assert.Equal(t, loadPath+"/twowaykv_export.zip", file)
+// 		if err != nil {
+// 			t.Error(err)
+// 		}
+// 	})
+// }
