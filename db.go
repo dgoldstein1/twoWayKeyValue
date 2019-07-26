@@ -8,11 +8,14 @@ import (
 	"strconv"
 )
 
+const V2K_PATH = "/v2k"
+const K2V_PATH = "/k2v"
+
 // connects to both keyToValue and valueToKey store
 func ConnectToDb() (*badger.DB, *badger.DB, error) {
 	dir := os.Getenv("GRAPH_DB_STORE_DIR")
-	v2kPath := dir + "/v2k"
-	k2vPath := dir + "/k2v"
+	v2kPath := dir + V2K_PATH
+	k2vPath := dir + K2V_PATH
 
 	// setup db properties
 	options := badger.Options{
@@ -131,4 +134,9 @@ func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []RetrievalE
 		return nil
 	})
 	return entries, errors
+}
+
+// creates zip file of
+func ZipDb() (file string, err error) {
+	return file, err
 }

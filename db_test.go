@@ -191,3 +191,15 @@ func TestGetEntries(t *testing.T) {
 	})
 	t.Run("throws errors on incorrect lookup", func(t *testing.T) {})
 }
+
+func TestZipDb(t *testing.T) {
+	t.Run("throws error when path does not exist", func(t *testing.T) {
+
+	})
+	t.Run("throws error when files do not exist", func(t *testing.T) {
+
+	})
+	t.Run("zips and returns real file sucesfully", func(t *testing.T) {
+
+	})
+}
