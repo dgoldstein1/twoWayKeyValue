@@ -122,15 +122,15 @@ func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []RetrievalE
 					Error:    err.Error(),
 					NotFound: err.Error() == KEY_NOT_FOUND,
 				})
-				break
+			} else {
+				// key exists
+				v, err := item.Value()
+				if err != nil {
+					errors = append(errors, RetrievalError{k, err.Error(), false})
+				}
+				// add new Entry to list
+				entries[k] = string(v)
 			}
-			// key exists
-			v, err := item.Value()
-			if err != nil {
-				errors = append(errors, RetrievalError{k, err.Error(), false})
-			}
-			// add new Entry to list
-			entries[k] = string(v)
 		}
 		// return out of View function
 		return nil

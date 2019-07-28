@@ -87,18 +87,19 @@ func (s *Server) PostEntries(c *gin.Context) {
 		errors = append(errors, e.Error)
 		logErr(e.Error)
 	}
+	// add to db if not found
 	for _, e := range k2vErrors {
 		if !e.NotFound {
 			errors = append(errors, e.Error)
-			break
-		}
-		// create new for keys if not found
-		entry, err := s.WriteEntry(s.K2v, s.V2k, e.LookupId)
-		if err != nil {
-			errors = append(errors, err.Error())
-			logErr(err.Error())
 		} else {
-			entriesToReturn = append(entriesToReturn, entry)
+			// create new, key not found
+			entry, err := s.WriteEntry(s.K2v, s.V2k, e.LookupId)
+			if err != nil {
+				errors = append(errors, err.Error())
+				logErr(err.Error())
+			} else {
+				entriesToReturn = append(entriesToReturn, entry)
+			}
 		}
 	}
 	// combine into entries array
