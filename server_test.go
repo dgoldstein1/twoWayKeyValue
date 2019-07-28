@@ -31,7 +31,11 @@ func TestValidateEntry(t *testing.T) {
 }
 
 func TestRetrieveEntry(t *testing.T) {
-	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
+	loadPath := "/tmp/twowaykv/retrieveEntry/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	require.NoError(t, err)
+	defer os.RemoveAll(loadPath)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
 	router, _ := SetupRouter("./api/*")
 
 	type Test struct {
