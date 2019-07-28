@@ -31,7 +31,7 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(router)
 	// core endpoints
-	router.POST("/entries", s.RetreieveEntries)
+	router.POST("/entries", s.PostEntries)
 	router.GET("/export", s.ExportDB)
 	// return server
 	return router, &s
@@ -49,7 +49,7 @@ func ValidatEntry(e Entry) error {
 }
 
 // retrieve and try from db
-func (s *Server) RetreieveEntries(c *gin.Context) {
+func (s *Server) PostEntries(c *gin.Context) {
 	// read in request
 	entriesPassed := []Entry{}
 	if err := c.BindJSON(&entriesPassed); err != nil {
