@@ -48,6 +48,19 @@ func ValidatEntry(e Entry) error {
 	return nil
 }
 
+func removeDuplicates(entries []Entry) (noDuplicates []Entry) {
+	noDuplicates = []Entry{}
+	m := make(map[string]bool)
+	for _, e := range entries {
+		// add if doesn't already exist
+		if !m[e.Key] {
+			noDuplicates = append(noDuplicates, e)
+			m[e.Key] = true
+		}
+	}
+	return noDuplicates
+}
+
 // retrieve and try from db
 func (s *Server) PostEntries(c *gin.Context) {
 	// read in request
@@ -60,6 +73,9 @@ func (s *Server) PostEntries(c *gin.Context) {
 		c.JSON(400, "Bad []entry or no entries passed")
 		return
 	}
+	// remove duplicates from keys passed
+	entriesPassed = removeDuplicates(entriesPassed)
+
 	// create big array entries for keys and values
 	// entriesToReturn := []Entry{}
 	k2vToFetch := []string{}

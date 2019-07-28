@@ -30,6 +30,18 @@ func TestValidateEntry(t *testing.T) {
 	})
 }
 
+func TestRemoveDupliactes(t *testing.T) {
+	t.Run("removes duplicates from array", func(t *testing.T) {
+		passed := []Entry{Entry{"k", 1}, Entry{"k1", 2}, Entry{"k", 1}}
+		expected := []Entry{Entry{"k", 1}, Entry{"k1", 2}}
+		assert.Equal(t, expected, removeDuplicates(passed))
+	})
+	t.Run("returns normal array on no duplicates", func(t *testing.T) {
+		passed := []Entry{Entry{"k", 1}, Entry{"k1", 2}, Entry{"k2", 3}}
+		assert.Equal(t, passed, removeDuplicates(passed))
+	})
+}
+
 func TestRetrieveEntry(t *testing.T) {
 	loadPath := "/tmp/twowaykv/retrieveEntry/" + strconv.Itoa(rand.Intn(INT_MAX))
 	err := os.MkdirAll(loadPath, os.ModePerm)
