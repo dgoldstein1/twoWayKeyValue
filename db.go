@@ -51,7 +51,7 @@ func ConnectToDb() (*badger.DB, *badger.DB, error) {
 }
 
 var KEY_NOT_FOUND = "Key not found"
-var INT_MAX = 9223372036854775807 // python max int
+var INT_MAX = 999999999 // python max int
 
 // writes entry to both dbs
 func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) (Entry, error) {
@@ -122,15 +122,15 @@ func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []RetrievalE
 					Error:    err.Error(),
 					NotFound: err.Error() == KEY_NOT_FOUND,
 				})
-				break
+			} else {
+				// key exists
+				v, err := item.Value()
+				if err != nil {
+					errors = append(errors, RetrievalError{k, err.Error(), false})
+				}
+				// add new Entry to list
+				entries[k] = string(v)
 			}
-			// key exists
-			v, err := item.Value()
-			if err != nil {
-				errors = append(errors, RetrievalError{k, err.Error(), false})
-			}
-			// add new Entry to list
-			entries[k] = string(v)
 		}
 		// return out of View function
 		return nil

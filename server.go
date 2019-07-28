@@ -31,7 +31,7 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(router)
 	// core endpoints
-	router.POST("/entries", s.RetreieveEntries)
+	router.POST("/entries", s.PostEntries)
 	router.GET("/export", s.ExportDB)
 	// return server
 	return router, &s
@@ -48,8 +48,21 @@ func ValidatEntry(e Entry) error {
 	return nil
 }
 
+func removeDuplicates(entries []Entry) (noDuplicates []Entry) {
+	noDuplicates = []Entry{}
+	m := make(map[string]bool)
+	for _, e := range entries {
+		// add if doesn't already exist
+		if !m[e.Key] {
+			noDuplicates = append(noDuplicates, e)
+			m[e.Key] = true
+		}
+	}
+	return noDuplicates
+}
+
 // retrieve and try from db
-func (s *Server) RetreieveEntries(c *gin.Context) {
+func (s *Server) PostEntries(c *gin.Context) {
 	// read in request
 	entriesPassed := []Entry{}
 	if err := c.BindJSON(&entriesPassed); err != nil {
@@ -60,6 +73,9 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 		c.JSON(400, "Bad []entry or no entries passed")
 		return
 	}
+	// remove duplicates from keys passed
+	entriesPassed = removeDuplicates(entriesPassed)
+
 	// create big array entries for keys and values
 	// entriesToReturn := []Entry{}
 	k2vToFetch := []string{}
@@ -87,18 +103,19 @@ func (s *Server) RetreieveEntries(c *gin.Context) {
 		errors = append(errors, e.Error)
 		logErr(e.Error)
 	}
+	// add to db if not found
 	for _, e := range k2vErrors {
-		if !e.NotFound {
-			errors = append(errors, e.Error)
-			break
-		}
-		// create new for keys if not found
-		entry, err := s.WriteEntry(s.K2v, s.V2k, e.LookupId)
-		if err != nil {
-			errors = append(errors, err.Error())
-			logErr(err.Error())
+		if e.NotFound {
+			// create new, key not found
+			entry, err := s.WriteEntry(s.K2v, s.V2k, e.LookupId)
+			if err != nil {
+				errors = append(errors, err.Error())
+				logErr(err.Error())
+			} else {
+				entriesToReturn = append(entriesToReturn, entry)
+			}
 		} else {
-			entriesToReturn = append(entriesToReturn, entry)
+			errors = append(errors, e.Error)
 		}
 	}
 	// combine into entries array
