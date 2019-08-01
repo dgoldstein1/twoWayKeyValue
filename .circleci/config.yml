@@ -27,6 +27,18 @@ jobs:
           paths:
             - ./build/twowaykv
 
+  create-docs:
+    docker:
+      - image: circleci/python:2.7.15
+    working_directory: /go/src/github.com/dgoldstein1/twowaykv
+    steps:
+      - checkout
+      - run: python api/swagger-yaml-to-html.py < api/swagger.yml > api/index.html
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./api
+
 
   #############
   ## Testing ##
@@ -119,11 +131,13 @@ workflows:
           requires:
             - build
 
+      - create-docs
 
       - push-docker-image:
           requires:
             - unit-tests
             - integration-tests
+            - create-docs
           filters:
             branches:
               only: master
@@ -132,6 +146,7 @@ workflows:
           requires:
             - unit-tests
             - integration-tests
+            - create-docs
 
           filters:
             branches:
