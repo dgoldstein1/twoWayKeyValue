@@ -30,9 +30,12 @@ jobs:
   create-docs:
     docker:
       - image: circleci/python:2.7.15
-    working_directory: /go/src/github.com/dgoldstein1/twowaykv
     steps:
       - checkout
+      # set permissions
+      - run: sudo chown -R circleci:circleci /usr/local/bin
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python2.7/site-packages
+      - run: pip install PyYAML
       - run: python api/swagger-yaml-to-html.py < api/swagger.yml > api/index.html
       - persist_to_workspace:
           root: .
