@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func WriteEntry(k2v *badger.DB, v2k *badger.DB, s string) error {
+func _WriteEntryHelper(k2v *badger.DB, v2k *badger.DB, s string) error {
 	v := rand.Intn(INT_MAX)
 	k2v.Update(func(txn *badger.Txn) error {
 		err := txn.Set([]byte(s), []byte(strconv.Itoa(v)))
@@ -99,7 +99,7 @@ func TestConnectToDb(t *testing.T) {
 	})
 }
 
-func TestWriteEntry(t *testing.T) {
+func TestGenerateEntry(t *testing.T) {
 	// setup, create DBs
 	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
 	k2v, v2k, err := ConnectToDb()
@@ -110,6 +110,52 @@ func TestWriteEntry(t *testing.T) {
 	assert.NotNil(t, k2v, v2k)
 	defer k2v.Close()
 	defer v2k.Close()
+
+	type Test struct {
+		Name             string
+		K                string
+		ExpectedEntryKey string
+		ExpectedError    string
+		Setup            func()
+		TearDown         func()
+	}
+	testTable := []Test{
+		Test{
+			Name:             "generates new Entry succesfully",
+			K:                "New Entry",
+			ExpectedEntryKey: "New Entry",
+			ExpectedError:    "",
+			Setup:            func() {},
+			TearDown:         func() {},
+		},
+		Test{
+			Name:             "throws error on many collisions",
+			K:                "collision",
+			ExpectedEntryKey: "collision",
+			ExpectedError:    "Too many collisions on creating collision",
+			Setup: func() {
+				INT_MAX = 1
+				_WriteEntryHelper(k2v, v2k, "collision-before")
+			},
+			TearDown: func() {
+				INT_MAX = 9999999
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Setup()
+			e, err := GenerateEntry(v2k, test.K)
+			assert.Equal(t, test.ExpectedEntryKey, e.Key)
+			if err == nil {
+				assert.Equal(t, test.ExpectedError, "")
+			} else {
+				assert.Equal(t, test.ExpectedError, err.Error())
+			}
+			test.TearDown()
+		})
+	}
 }
 
 func TestCreateIfDoesntExist(t *testing.T) {
@@ -153,7 +199,7 @@ func TestCreateIfDoesntExist(t *testing.T) {
 			ExpectedEntriesLength: 0,
 			ExpectedErrors:        []string{},
 			Setup: func() {
-				WriteEntry(k2v, v2k, "alreadyExists")
+				_WriteEntryHelper(k2v, v2k, "alreadyExists")
 			},
 		},
 		Test{
@@ -163,7 +209,7 @@ func TestCreateIfDoesntExist(t *testing.T) {
 			ExpectedEntriesLength: 0,
 			ExpectedErrors:        []string{"Entry alreadyExists1 already exists"},
 			Setup: func() {
-				WriteEntry(k2v, v2k, "alreadyExists1")
+				_WriteEntryHelper(k2v, v2k, "alreadyExists1")
 			},
 		},
 		Test{
@@ -173,7 +219,7 @@ func TestCreateIfDoesntExist(t *testing.T) {
 			ExpectedEntriesLength: 3,
 			ExpectedErrors:        []string{},
 			Setup: func() {
-				WriteEntry(k2v, v2k, "alreadyExists2")
+				_WriteEntryHelper(k2v, v2k, "alreadyExists2")
 			},
 		},
 	}

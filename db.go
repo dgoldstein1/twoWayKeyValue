@@ -61,6 +61,7 @@ func GenerateEntry(v2k *badger.DB, k string) (Entry, error) {
 	err := v2k.View(func(txn *badger.Txn) error {
 		// keep creating random ints until is found
 		keyIsUnique := false
+		i := 0
 		for !keyIsUnique {
 			_, err := txn.Get(val)
 			// key not found, stopping condition
@@ -69,8 +70,11 @@ func GenerateEntry(v2k *badger.DB, k string) (Entry, error) {
 			} else if err != nil {
 				// normal error
 				return err
+			} else if i == INT_MAX {
+				return fmt.Errorf("Too many collisions on creating %s", k)
 			}
 			// key is found somewhere without error, find a new one
+			i++
 			v = rand.Intn(INT_MAX)
 			val = []byte(strconv.Itoa(v))
 		}
