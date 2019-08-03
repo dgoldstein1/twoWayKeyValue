@@ -59,11 +59,15 @@ func (s *Server) CreateEntries(c *gin.Context) {
 		c.JSON(400, "Bad []entry or no entries passed")
 		return
 	}
-	// remove duplicates from keys passed
-	keysToCreate = removeDuplicates(keysToCreate)
-
+	// create dbs
+	entries, errors := CreateIfDoesntExist(
+		removeDuplicates(keysToCreate), // remove duplicates from keys passed
+		true,                           // log or dont log already exists errors
+		s.K2v,
+		s.V2k,
+	)
 	// finally return everything!!
-	c.JSON(200, RetrieveEntryResponse{})
+	c.JSON(200, RetrieveEntryResponse{errors, entries})
 }
 
 // stream zipped file over browser
