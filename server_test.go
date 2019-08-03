@@ -42,6 +42,7 @@ func TestCreateEntriesEntry(t *testing.T) {
 		ExpectedCode          int
 		ExpectedEntriesLength int
 		ExpectedErrors        []string
+		Setup                 func()
 		Method                string
 	}
 	// used for testing valid value lookup
@@ -54,6 +55,24 @@ func TestCreateEntriesEntry(t *testing.T) {
 			Body:                  []byte(`["testKey"]`),
 			ExpectedCode:          200,
 			ExpectedEntriesLength: 1,
+			ExpectedErrors:        []string{},
+			Method:                "POST",
+		},
+		Test{
+			Name:                  "mutes key already exists",
+			Path:                  "/entries?muteAlreadyExistsError=false",
+			Body:                  []byte(`["testKey"]`),
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 0,
+			ExpectedErrors:        []string{"Key 'testKey' already exists"},
+			Method:                "POST",
+		},
+		Test{
+			Name:                  "mutes key already exists",
+			Path:                  "/entries?muteAlreadyExistsError=true",
+			Body:                  []byte(`["testKey"]`),
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 0,
 			ExpectedErrors:        []string{},
 			Method:                "POST",
 		},
