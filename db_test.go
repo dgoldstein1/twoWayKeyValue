@@ -211,7 +211,7 @@ func TestCreateIfDoesntExist(t *testing.T) {
 			Keys:                  []string{"alreadyExists1"},
 			MuteAlreadyExists:     false,
 			ExpectedEntriesLength: 0,
-			ExpectedErrors:        []string{"Entry alreadyExists1 already exists"},
+			ExpectedErrors:        []string{"Key alreadyExists1 already exists in DB"},
 			Setup: func() {
 				_WriteEntryHelper(k2v, v2k, "alreadyExists1")
 			},

@@ -123,7 +123,7 @@ func CreateIfDoesntExist(
 	defer k2vWB.Cancel()
 	defer v2kWB.Cancel()
 	// write entries to both DBs
-	for _, k := range keys {
+	for _, k := range keysToWriteToDB {
 		e, err := writeEntryToDB(v2k, k2vWB, v2kWB, k)
 		if err != nil {
 			logErr("Could not create entry %+v: %v", e, err)
