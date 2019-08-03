@@ -32,12 +32,12 @@ func TestValidateEntry(t *testing.T) {
 
 func TestRemoveDupliactes(t *testing.T) {
 	t.Run("removes duplicates from array", func(t *testing.T) {
-		passed := []Entry{Entry{"k", 1}, Entry{"k1", 2}, Entry{"k", 1}}
-		expected := []Entry{Entry{"k", 1}, Entry{"k1", 2}}
+		passed := []string{"k", "k1", "k"}
+		expected := []string{"k", "k1"}
 		assert.Equal(t, expected, removeDuplicates(passed))
 	})
 	t.Run("returns normal array on no duplicates", func(t *testing.T) {
-		passed := []Entry{Entry{"k", 1}, Entry{"k1", 2}, Entry{"k2", 3}}
+		passed := []string{"k1", "k2", "k3"}
 		assert.Equal(t, passed, removeDuplicates(passed))
 	})
 }
