@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
   version: '0.1.0'
-  title: 'Two Way Key Map Store'
-  description: 'Fast and Portable Value -> Key and Key -> Value lookups'
+  title: 'Two Way ID Store'
+  description: 'Fast and Portable Value -> Key and Key -> Value lookups for storing string:int IDs'
 # Added by API Auto Mocking Plugin
 servers:
   - description: SwaggerHub API Auto Mocking
@@ -11,7 +11,15 @@ servers:
 paths:
   /entries:
     post:
-      summary: Retrieves entries from the DB using given keys or values. Creates entry if doesn't exist, although only creates new entries on 'Key' value.
+      summary: Creates entries if they don't already exist.
+      parameters:
+        - in: query
+          name: muteAlreadyExistsError
+          schema:
+            type: string
+          required: false
+          description: Mute the error 'Entry already exists'
+
       requestBody:
         required: true
         content:
@@ -19,12 +27,12 @@ paths:
               schema:
                 type: array
                 items:
-                    $ref: '#/components/schemas/KeyValueEntry'
+                    type: string
 
 
       responses:
         '200':
-          description: An entry in the database
+          description: Newly created entries
           content:
             application/json:
               schema:
