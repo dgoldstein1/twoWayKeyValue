@@ -10,6 +10,19 @@ import (
 	"testing"
 )
 
+func _WriteEntryHelper(k2v *badger.DB, v2k *badger.DB, s string) error {
+	v := rand.Intn(INT_MAX)
+	k2v.Update(func(txn *badger.Txn) error {
+		err := txn.Set([]byte(s), []byte(strconv.Itoa(v)))
+		return err
+	})
+	v2k.Update(func(txn *badger.Txn) error {
+		err := txn.Set([]byte(strconv.Itoa(v)), []byte(s))
+		return err
+	})
+	return nil
+}
+
 func TestConnectToDb(t *testing.T) {
 	// setup
 	os.MkdirAll(testingDir, os.ModePerm)
@@ -70,23 +83,27 @@ func TestConnectToDb(t *testing.T) {
 		err = k2v.View(func(txn *badger.Txn) error {
 			item, err := txn.Get(testKey)
 			require.Nil(t, err)
-			v, err := item.Value()
-			assert.Equal(t, testVal, v)
+			item.Value(func(v []byte) error {
+				assert.Equal(t, testVal, v)
+				return nil
+			})
 			return err
 		})
 		require.Nil(t, err)
 		err = v2k.View(func(txn *badger.Txn) error {
 			item, err := txn.Get(testVal)
 			require.Nil(t, err)
-			k, err := item.Value()
-			assert.Equal(t, testKey, k)
+			item.Value(func(k []byte) error {
+				assert.Equal(t, testKey, k)
+				return nil
+			})
 			return err
 		})
 		require.Nil(t, err)
 	})
 }
 
-func TestWriteEntry(t *testing.T) {
+func TestGenerateEntry(t *testing.T) {
 	// setup, create DBs
 	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
 	k2v, v2k, err := ConnectToDb()
@@ -97,57 +114,61 @@ func TestWriteEntry(t *testing.T) {
 	assert.NotNil(t, k2v, v2k)
 	defer k2v.Close()
 	defer v2k.Close()
-	t.Run("writes succesful entry to both DBs", func(t *testing.T) {
-		t.Run("adds correct entry to k:v", func(t *testing.T) {
-			key := strconv.Itoa(rand.Intn(INT_MAX))
-			e, err := WriteEntry(k2v, v2k, key)
-			assert.Nil(t, err)
-			// lookup in DB
-			k2v.View(func(txn *badger.Txn) error {
-				item, err := txn.Get([]byte(e.Key))
-				assert.Nil(t, err)
-				assert.NotNil(t, item)
-				// assert correct key / value
-				assert.Equal(t, e.Key, string(item.Key()))
-				v, _ := item.Value()
-				assert.Equal(t, strconv.Itoa(e.Value), string(v))
-				return nil
-			})
-		})
-		t.Run("adds correct entry to v:k", func(t *testing.T) {
-			key := strconv.Itoa(rand.Intn(INT_MAX))
-			e, err := WriteEntry(k2v, v2k, key)
-			assert.Nil(t, err)
-			// lookup in DB
-			v2k.View(func(txn *badger.Txn) error {
-				valAsString := strconv.Itoa(e.Value)
-				item, err := txn.Get([]byte(valAsString))
-				assert.Nil(t, err)
-				assert.NotNil(t, item)
-				// assert correct key / value
-				assert.Equal(t, valAsString, string(item.Key()))
-				k, _ := item.Value()
-				assert.Equal(t, e.Key, string(k))
-				return nil
-			})
-		})
-		t.Run("does not add if key already exists", func(t *testing.T) {
-			key := strconv.Itoa(rand.Intn(INT_MAX))
-			e, err := WriteEntry(k2v, v2k, key)
-			assert.Nil(t, err)
-			assert.NotNil(t, e)
-			// should fail on second write
-			e, err = WriteEntry(k2v, v2k, e.Key)
-			assert.NotNil(t, err)
-			assert.Equal(t, Entry{}, e)
-		})
-	})
 
+	type Test struct {
+		Name             string
+		K                string
+		ExpectedEntryKey string
+		ExpectedError    string
+		Setup            func()
+		TearDown         func()
+	}
+	testTable := []Test{
+		Test{
+			Name:             "generates new Entry succesfully",
+			K:                "New Entry",
+			ExpectedEntryKey: "New Entry",
+			ExpectedError:    "",
+			Setup:            func() {},
+			TearDown:         func() {},
+		},
+		Test{
+			Name:             "throws error on many collisions",
+			K:                "collision",
+			ExpectedEntryKey: "collision",
+			ExpectedError:    "Too many collisions on creating collision",
+			Setup: func() {
+				INT_MAX = 1
+				_WriteEntryHelper(k2v, v2k, "collision-before")
+			},
+			TearDown: func() {
+				INT_MAX = 9999999
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Setup()
+			e, err := GenerateEntry(v2k, test.K)
+			assert.Equal(t, test.ExpectedEntryKey, e.Key)
+			if err == nil {
+				assert.Equal(t, test.ExpectedError, "")
+			} else {
+				assert.Equal(t, test.ExpectedError, err.Error())
+			}
+			test.TearDown()
+		})
+	}
 }
 
-func TestGetEntries(t *testing.T) {
-	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
-	os.MkdirAll(testingDir, os.ModePerm)
+func TestCreateIfDoesntExist(t *testing.T) {
+	loadPath := "/tmp/twowaykv/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	defer os.RemoveAll(loadPath)
+	require.NoError(t, err)
+	// setup, create DBs
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
 	k2v, v2k, err := ConnectToDb()
 	if err != nil {
 		t.Fatal(err)
@@ -156,38 +177,123 @@ func TestGetEntries(t *testing.T) {
 	assert.NotNil(t, k2v, v2k)
 	defer k2v.Close()
 	defer v2k.Close()
-	// write entry to DBs
-	key := strconv.Itoa(rand.Intn(INT_MAX))
-	e, err := WriteEntry(k2v, v2k, key)
+
+	type Test struct {
+		Name                  string
+		Keys                  []string
+		MuteAlreadyExists     bool
+		ExpectedEntriesLength int
+		ExpectedErrors        []string
+		Setup                 func()
+	}
+
+	testTable := []Test{
+		Test{
+			Name:                  "adds entries succesfully",
+			Keys:                  []string{"test1", "test2"},
+			MuteAlreadyExists:     false,
+			ExpectedEntriesLength: 2,
+			ExpectedErrors:        []string{},
+			Setup:                 func() {},
+		},
+		Test{
+			Name:                  "(MuteAlreadyExists=true)",
+			Keys:                  []string{"alreadyExists"},
+			MuteAlreadyExists:     true,
+			ExpectedEntriesLength: 0,
+			ExpectedErrors:        []string{},
+			Setup: func() {
+				_WriteEntryHelper(k2v, v2k, "alreadyExists")
+			},
+		},
+		Test{
+			Name:                  "(MuteAlreadyExists=false)",
+			Keys:                  []string{"alreadyExists1"},
+			MuteAlreadyExists:     false,
+			ExpectedEntriesLength: 0,
+			ExpectedErrors:        []string{"Key alreadyExists1 already exists in DB"},
+			Setup: func() {
+				_WriteEntryHelper(k2v, v2k, "alreadyExists1")
+			},
+		},
+		Test{
+			Name:                  "Mix of already exists and new",
+			Keys:                  []string{"key", "key1", "key2", "alreadyExists2"},
+			MuteAlreadyExists:     true,
+			ExpectedEntriesLength: 3,
+			ExpectedErrors:        []string{},
+			Setup: func() {
+				_WriteEntryHelper(k2v, v2k, "alreadyExists2")
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Setup()
+			entries, errors := CreateIfDoesntExist(
+				test.Keys,
+				test.MuteAlreadyExists,
+				k2v,
+				v2k,
+			)
+			assert.Equal(t, test.ExpectedEntriesLength, len(entries))
+			assert.Equal(t, test.ExpectedErrors, errors)
+		})
+	}
+
+}
+
+func TestwriteEntryToDB(t *testing.T) {
+	// setup, create DBs
+	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
+	k2v, v2k, err := ConnectToDb()
+	if err != nil {
+		t.Fatal(err)
+	}
 	assert.Nil(t, err)
-	valAsString := strconv.Itoa(e.Value)
-	t.Run("Gets correct entries from string", func(t *testing.T) {
-		e, err := GetEntries(k2v, []string{key})
-		assert.Equal(t, []RetrievalError{}, err)
-		assert.Equal(t, len(e), 1)
-		if len(e) == 1 {
-			valAsInt, err := strconv.Atoi(e[key])
-			assert.Nil(t, err)
-			assert.Equal(t, valAsInt < INT_MAX, true)
-		}
-	})
-	t.Run("Gets correct entry from value", func(t *testing.T) {
-		e, err := GetEntries(v2k, []string{valAsString})
-		assert.Equal(t, []RetrievalError{}, err)
-		assert.Equal(t, len(e), 1)
-		if len(e) == 1 {
-			assert.Equal(t, key, e[valAsString])
-		}
-	})
-	t.Run("returns correct retrieval errors when not found", func(t *testing.T) {
-		key := "Sdf23-f2-39if"
-		entries, errors := GetEntries(v2k, []string{key})
-		assert.Equal(t, 0, len(entries))
-		assert.Equal(t, 1, len(errors))
-		assert.Equal(t, true, errors[0].NotFound)
-		assert.Equal(t, key, errors[0].LookupId)
-	})
-	t.Run("throws errors on incorrect lookup", func(t *testing.T) {})
+	assert.NotNil(t, k2v, v2k)
+	defer k2v.Close()
+	defer v2k.Close()
+	k2vWB := k2v.NewWriteBatch()
+	v2kWB := v2k.NewWriteBatch()
+	defer k2vWB.Cancel()
+	defer v2kWB.Cancel()
+
+	type Test struct {
+		Name          string
+		Key           string
+		ExpectedError string
+		Setup         func()
+		TearDown      func()
+	}
+
+	testTable := []Test{
+		Test{
+			Name:          "creates entry succesfully",
+			Key:           "testkey910",
+			ExpectedError: "",
+			Setup:         func() {},
+			TearDown:      func() {},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Setup()
+			_, err := writeEntryToDB(v2k, k2vWB, v2kWB, test.Key)
+			if err == nil {
+				assert.Equal(t, test.ExpectedError, "")
+			} else {
+				assert.Equal(t, test.ExpectedError, err.Error())
+			}
+			test.TearDown()
+		})
+	}
+
+	v2kWB.Flush()
+	k2vWB.Flush()
+
 }
 
 func TestZipDb(t *testing.T) {

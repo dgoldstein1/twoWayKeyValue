@@ -1,12 +1,9 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/zsais/go-gin-prometheus"
 	"net/http"
-	"strconv"
 )
 
 // entrypoint
@@ -17,7 +14,7 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 		logFatalf("Could not establish connection to db: %v", err)
 	}
 	// create server object
-	s := Server{kDB, vDB, WriteEntry, GetEntries}
+	s := Server{kDB, vDB, CreateIfDoesntExist}
 	// define endpoints
 	router := gin.Default()
 	router.Use(gin.Logger())
@@ -31,109 +28,42 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(router)
 	// core endpoints
-	router.POST("/entries", s.PostEntries)
+	router.POST("/entries", s.CreateEntries)
 	router.GET("/export", s.ExportDB)
 	// return server
 	return router, &s
 }
 
-// validate key and value
-func ValidatEntry(e Entry) error {
-	if e.Key == "" && e.Value == 0 {
-		return errors.New("Must provide valid key or value query string")
-	}
-	if e.Value < 0 {
-		return fmt.Errorf("Invalid int '%d'", e.Value)
-	}
-	return nil
-}
-
-func removeDuplicates(entries []Entry) (noDuplicates []Entry) {
-	noDuplicates = []Entry{}
+// removes duplicate keys in array
+func removeDuplicates(keys []string) (noDuplicates []string) {
+	noDuplicates = []string{}
 	m := make(map[string]bool)
-	for _, e := range entries {
-		// add if doesn't already exist
-		if !m[e.Key] {
-			noDuplicates = append(noDuplicates, e)
-			m[e.Key] = true
+	for _, k := range keys {
+		if !m[k] {
+			noDuplicates = append(noDuplicates, k)
+			m[k] = true
 		}
 	}
 	return noDuplicates
 }
 
-// retrieve and try from db
-func (s *Server) PostEntries(c *gin.Context) {
+// create entries if they don't already exist
+func (s *Server) CreateEntries(c *gin.Context) {
 	// read in request
-	entriesPassed := []Entry{}
-	if err := c.BindJSON(&entriesPassed); err != nil {
+	keysToCreate := []string{}
+	if err := c.BindJSON(&keysToCreate); err != nil {
 		c.JSON(400, Error{400, err.Error()})
 		return
 	}
-	if len(entriesPassed) == 0 {
-		c.JSON(400, "Bad []entry or no entries passed")
-		return
-	}
-	// remove duplicates from keys passed
-	entriesPassed = removeDuplicates(entriesPassed)
-
-	// create big array entries for keys and values
-	// entriesToReturn := []Entry{}
-	k2vToFetch := []string{}
-	v2kToFetch := []string{}
-	for _, e := range entriesPassed {
-		// validate entry
-		if err := ValidatEntry(e); err != nil {
-			c.JSON(400, err.Error())
-			return
-		}
-		// if has key, lookup by key, else lookup by value
-		if e.Key != "" {
-			k2vToFetch = append(k2vToFetch, e.Key)
-		} else {
-			v2kToFetch = append(v2kToFetch, strconv.Itoa(e.Value))
-		}
-	}
-	// lookup all
-	entriesToReturn := []Entry{}
-	k2vEntries, k2vErrors := GetEntries(s.K2v, k2vToFetch)
-	v2kEntries, v2kErrors := GetEntries(s.V2k, v2kToFetch)
-	// pool errors
-	errors := []string{}
-	for _, e := range v2kErrors {
-		errors = append(errors, e.Error)
-		logErr(e.Error)
-	}
-	// add to db if not found
-	for _, e := range k2vErrors {
-		if e.NotFound {
-			// create new, key not found
-			entry, err := s.WriteEntry(s.K2v, s.V2k, e.LookupId)
-			if err != nil {
-				errors = append(errors, err.Error())
-				logErr(err.Error())
-			} else {
-				entriesToReturn = append(entriesToReturn, entry)
-			}
-		} else {
-			errors = append(errors, e.Error)
-		}
-	}
-	// combine into entries array
-	for key, v := range k2vEntries {
-		val, err := strconv.Atoi(v)
-		if err != nil {
-			errors = append(errors, err.Error())
-			logErr("Could not convert value to int %s", v)
-		} else {
-			entriesToReturn = append(entriesToReturn, Entry{key, val})
-		}
-	}
-	for v, key := range v2kEntries {
-		val, _ := strconv.Atoi(v)
-		entriesToReturn = append(entriesToReturn, Entry{key, val})
-	}
+	// create dbs
+	entries, errors := CreateIfDoesntExist(
+		removeDuplicates(keysToCreate),              // remove duplicates from keys passed
+		c.Query("muteAlreadyExistsError") == "true", // log or dont log already exists errors
+		s.K2v,
+		s.V2k,
+	)
 	// finally return everything!!
-	c.JSON(200, RetrieveEntryResponse{errors, entriesToReturn})
+	c.JSON(200, RetrieveEntryResponse{errors, entries})
 }
 
 // stream zipped file over browser

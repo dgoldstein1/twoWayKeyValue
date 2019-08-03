@@ -15,34 +15,19 @@ import (
 
 var testingDir = "/tmp/twowaykv/temp"
 
-func TestValidateEntry(t *testing.T) {
-	t.Run("fails when both are noneType", func(t *testing.T) {
-		err := ValidatEntry(Entry{})
-		assert.NotNil(t, err)
-	})
-	t.Run("fails when value is <= 0", func(t *testing.T) {
-		err := ValidatEntry(Entry{"test", -3})
-		assert.NotNil(t, err)
-	})
-	t.Run("passes with valid entry", func(t *testing.T) {
-		err := ValidatEntry(Entry{"test", 2534})
-		assert.Nil(t, err)
-	})
-}
-
 func TestRemoveDupliactes(t *testing.T) {
 	t.Run("removes duplicates from array", func(t *testing.T) {
-		passed := []Entry{Entry{"k", 1}, Entry{"k1", 2}, Entry{"k", 1}}
-		expected := []Entry{Entry{"k", 1}, Entry{"k1", 2}}
+		passed := []string{"k", "k1", "k"}
+		expected := []string{"k", "k1"}
 		assert.Equal(t, expected, removeDuplicates(passed))
 	})
 	t.Run("returns normal array on no duplicates", func(t *testing.T) {
-		passed := []Entry{Entry{"k", 1}, Entry{"k1", 2}, Entry{"k2", 3}}
+		passed := []string{"k1", "k2", "k3"}
 		assert.Equal(t, passed, removeDuplicates(passed))
 	})
 }
 
-func TestRetrieveEntry(t *testing.T) {
+func TestCreateEntriesEntry(t *testing.T) {
 	loadPath := "/tmp/twowaykv/retrieveEntry/" + strconv.Itoa(rand.Intn(INT_MAX))
 	err := os.MkdirAll(loadPath, os.ModePerm)
 	require.NoError(t, err)
@@ -57,6 +42,7 @@ func TestRetrieveEntry(t *testing.T) {
 		ExpectedCode          int
 		ExpectedEntriesLength int
 		ExpectedErrors        []string
+		Setup                 func()
 		Method                string
 	}
 	// used for testing valid value lookup
@@ -66,46 +52,28 @@ func TestRetrieveEntry(t *testing.T) {
 		Test{
 			Name:                  "correctly retrieves valid entry",
 			Path:                  "/entries",
-			Body:                  []byte(`[{"key":"testKey","value":92238547725307}]`),
+			Body:                  []byte(`["testKey"]`),
 			ExpectedCode:          200,
 			ExpectedEntriesLength: 1,
 			ExpectedErrors:        []string{},
 			Method:                "POST",
 		},
 		Test{
-			Name:                  "correctly retrieves valid entry (key only)",
-			Path:                  "/entries",
-			Body:                  []byte(`[{"key":"testKey"}]`),
+			Name:                  "mutes key already exists",
+			Path:                  "/entries?muteAlreadyExistsError=false",
+			Body:                  []byte(`["testKey"]`),
 			ExpectedCode:          200,
-			ExpectedEntriesLength: 1,
-			ExpectedErrors:        []string{},
-			Method:                "POST",
-		},
-		Test{
-			Name:                  "correctly retrieves valid entry (value only)",
-			Path:                  "/entries",
-			Body:                  []byte(""), // set at execution time
-			ExpectedCode:          200,
-			ExpectedEntriesLength: 1,
-			ExpectedErrors:        []string{},
-			Method:                "POST",
-		},
-		Test{
-			Name:                  "adds new key if doesnt exist",
-			Path:                  "/entries",
-			Body:                  []byte(`[{"key":"testKey2432"}]`),
-			ExpectedCode:          200,
-			ExpectedEntriesLength: 1,
-			ExpectedErrors:        []string{},
-			Method:                "POST",
-		},
-		Test{
-			Name:                  "validates bad int type",
-			Path:                  "/entries",
-			Body:                  []byte(`[{"value":"0"}]`),
-			ExpectedCode:          400,
 			ExpectedEntriesLength: 0,
-			ExpectedErrors:        []string{"json: cannot unmarshal string into Go struct field Entry.value of type int"},
+			ExpectedErrors:        []string{"Key testKey already exists in DB"},
+			Method:                "POST",
+		},
+		Test{
+			Name:                  "mutes key already exists",
+			Path:                  "/entries?muteAlreadyExistsError=true",
+			Body:                  []byte(`["testKey"]`),
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 0,
+			ExpectedErrors:        []string{},
 			Method:                "POST",
 		},
 		Test{
@@ -114,13 +82,13 @@ func TestRetrieveEntry(t *testing.T) {
 			Body:                  []byte(`2085jf2 3j0d sdf}`),
 			ExpectedCode:          400,
 			ExpectedEntriesLength: 0,
-			ExpectedErrors:        []string{"json: cannot unmarshal number into Go value of type []main.Entry"},
+			ExpectedErrors:        []string{"json: cannot unmarshal number into Go value of type []string"},
 			Method:                "POST",
 		},
 		Test{
 			Name:                  "Creates many entries succesfully",
 			Path:                  "/entries",
-			Body:                  []byte(`[{"key":"/wiki/The_String_Cheese_Incident","value":0},{"key":"/wiki/Korb%C3%A1%C4%8Diky","value":0},{"key":"/wiki/Slovakia","value":0},{"key":"/wiki/Cheese","value":0},{"key":"/wiki/Mozzarella","value":0},{"key":"/wiki/Milk","value":0},{"key":"/wiki/Protein","value":0},{"key":"/wiki/Slovakia","value":0},{"key":"/wiki/Korb%C3%A1%C4%8Diky","value":0},{"key":"/wiki/Sheep_milk","value":0},{"key":"/wiki/Armenia","value":0},{"key":"/wiki/Nigella_sativa","value":0},{"key":"/wiki/Mahleb","value":0},{"key":"/wiki/Syrian","value":0},{"key":"/wiki/Georgia_(country)","value":0},{"key":"/wiki/Sheep","value":0},{"key":"/wiki/Cream","value":0},{"key":"/wiki/Veal","value":0},{"key":"/wiki/Processed_cheese","value":0},{"key":"/wiki/Kerry_Group","value":0},{"key":"/wiki/Bend_Me,_Shape_Me","value":0},{"key":"/wiki/Disco","value":0},{"key":"/wiki/Funfair","value":0},{"key":"/wiki/Cheddar_cheese","value":0},{"key":"/wiki/Mozzarella","value":0},{"key":"/wiki/Red_leicester","value":0},{"key":"/wiki/Bacon","value":0},{"key":"/wiki/Pizza","value":0},{"key":"/wiki/Gouda_cheese","value":0},{"key":"/wiki/Charleville,_County_Cork","value":0},{"key":"/wiki/Holland","value":0},{"key":"/wiki/Emmental","value":0},{"key":"/wiki/Tesco","value":0},{"key":"/wiki/Dairylea_Cooperative_Inc.","value":0},{"key":"/wiki/Dunnes_Stores","value":0},{"key":"/wiki/Lunchables","value":0},{"key":"/wiki/Tortilla_wrap","value":0},{"key":"/wiki/Cracker_(food)","value":0},{"key":"/wiki/Tomato_ketchup","value":0},{"key":"/wiki/Spam_(food)","value":0},{"key":"/wiki/Mexico","value":0},{"key":"/wiki/Quesillo","value":0},{"key":"/wiki/Queso_Oaxaca","value":0},{"key":"/wiki/United_States","value":0},{"key":"/wiki/Mozzarella","value":0},{"key":"/wiki/Cheddar_cheese","value":0},{"key":"/wiki/Bega_Cheese","value":0},{"key":"/wiki/Armenian_cuisine","value":0},{"key":"/wiki/List_of_cheeses","value":0},{"key":"/wiki/List_of_stretch-cured_cheeses","value":0},{"key":"/wiki/Pasta_filata","value":0},{"key":"/wiki/The_Atlantic","value":0},{"key":"/wiki/Atlantic_Media","value":0},{"key":"/wiki/List_of_American_cheeses","value":0},{"key":"/wiki/Swiss_cheese#Varieties","value":0},{"key":"/wiki/Bergenost","value":0},{"key":"/wiki/Brick_cheese","value":0},{"key":"/wiki/Cheese_curd","value":0},{"key":"/wiki/Colby_cheese","value":0},{"key":"/wiki/Colby-Jack","value":0},{"key":"/wiki/Cougar_Gold_cheese","value":0},{"key":"/wiki/Cream_cheese","value":0},{"key":"/wiki/Creole_cream_cheese","value":0},{"key":"/wiki/Cuba_cheese","value":0},{"key":"/wiki/D%27Isigny","value":0},{"key":"/wiki/Farmer_cheese","value":0},{"key":"/wiki/Hoop_cheese","value":0},{"key":"/wiki/Humboldt_Fog","value":0},{"key":"/wiki/Kunik_cheese","value":0},{"key":"/wiki/Liederkranz_cheese","value":0},{"key":"/wiki/Maytag_Blue_cheese","value":0},{"key":"/wiki/Monterey_Jack","value":0},{"key":"/wiki/Muenster_cheese","value":0},{"key":"/wiki/Pinconning_cheese","value":0},{"key":"/wiki/Red_Hawk_cheese","value":0},{"key":"/wiki/Swiss_cheese","value":0},{"key":"/wiki/Teleme_cheese","value":0},{"key":"/wiki/Wisconsin_cheese","value":0},{"key":"/wiki/String_cheese","value":0},{"key":"/wiki/String_cheese","value":0},{"key":"/wiki/Main_Page","value":0},{"key":"/wiki/Main_Page","value":0},{"key":"/wiki/String_cheese","value":0}]`),
+			Body:                  []byte(`["/wiki/The_String_Cheese_Incident","/wiki/Korb%C3%A1%C4%8Diky","/wiki/Slovakia","/wiki/Cheese","/wiki/Mozzarella","/wiki/Milk","/wiki/Protein","/wiki/Slovakia","/wiki/Korb%C3%A1%C4%8Diky","/wiki/Sheep_milk","/wiki/Armenia","/wiki/Nigella_sativa","/wiki/Mahleb","/wiki/Syrian","/wiki/Georgia_(country)","/wiki/Sheep","/wiki/Cream","/wiki/Veal","/wiki/Processed_cheese","/wiki/Kerry_Group","/wiki/Bend_Me,_Shape_Me","/wiki/Disco","/wiki/Funfair","/wiki/Cheddar_cheese","/wiki/Mozzarella","/wiki/Red_leicester","/wiki/Bacon","/wiki/Pizza","/wiki/Gouda_cheese","/wiki/Charleville,_County_Cork","/wiki/Holland","/wiki/Emmental","/wiki/Tesco","/wiki/Dairylea_Cooperative_Inc.","/wiki/Dunnes_Stores","/wiki/Lunchables","/wiki/Tortilla_wrap","/wiki/Cracker_(food)","/wiki/Tomato_ketchup","/wiki/Spam_(food)","/wiki/Mexico","/wiki/Quesillo","/wiki/Queso_Oaxaca","/wiki/United_States","/wiki/Mozzarella","/wiki/Cheddar_cheese","/wiki/Bega_Cheese","/wiki/Armenian_cuisine","/wiki/List_of_cheeses","/wiki/List_of_stretch-cured_cheeses","/wiki/Pasta_filata","/wiki/The_Atlantic","/wiki/Atlantic_Media","/wiki/List_of_American_cheeses","/wiki/Swiss_cheese#Varieties","/wiki/Bergenost","/wiki/Brick_cheese","/wiki/Cheese_curd","/wiki/Colby_cheese","/wiki/Colby-Jack","/wiki/Cougar_Gold_cheese","/wiki/Cream_cheese","/wiki/Creole_cream_cheese","/wiki/Cuba_cheese","/wiki/D%27Isigny","/wiki/Farmer_cheese","/wiki/Hoop_cheese","/wiki/Humboldt_Fog","/wiki/Kunik_cheese","/wiki/Liederkranz_cheese","/wiki/Maytag_Blue_cheese","/wiki/Monterey_Jack","/wiki/Muenster_cheese","/wiki/Pinconning_cheese","/wiki/Red_Hawk_cheese","/wiki/Swiss_cheese","/wiki/Teleme_cheese","/wiki/Wisconsin_cheese","/wiki/String_cheese","/wiki/String_cheese","/wiki/Main_Page","/wiki/Main_Page","/wiki/String_cheese"]`),
 			ExpectedCode:          200,
 			ExpectedEntriesLength: 75,
 			Method:                "POST",
