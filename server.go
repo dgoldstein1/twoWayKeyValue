@@ -49,7 +49,15 @@ func ValidatEntry(e Entry) error {
 
 // removes duplicate keys in array
 func removeDuplicates(keys []string) (noDuplicates []string) {
-	return []string{}
+	noDuplicates = []string{}
+	m := make(map[string]bool)
+	for _, k := range keys {
+		if !m[k] {
+			noDuplicates = append(noDuplicates, k)
+			m[k] = true
+		}
+	}
+	return noDuplicates
 }
 
 // create entries if they don't already exist
