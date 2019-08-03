@@ -10,6 +10,19 @@ import (
 	"testing"
 )
 
+func WriteEntry(k2v *badger.DB, v2k *badger.DB, s string) error {
+	v := rand.Intn(INT_MAX)
+	k2v.Update(func(txn *badger.Txn) error {
+		err := txn.Set([]byte(s), []byte(strconv.Itoa(v)))
+		return err
+	})
+	v2k.Update(func(txn *badger.Txn) error {
+		err := txn.Set([]byte(strconv.Itoa(v)), []byte(s))
+		return err
+	})
+	return nil
+}
+
 func TestConnectToDb(t *testing.T) {
 	// setup
 	os.MkdirAll(testingDir, os.ModePerm)
@@ -97,51 +110,6 @@ func TestWriteEntry(t *testing.T) {
 	assert.NotNil(t, k2v, v2k)
 	defer k2v.Close()
 	defer v2k.Close()
-	t.Run("writes succesful entry to both DBs", func(t *testing.T) {
-		t.Run("adds correct entry to k:v", func(t *testing.T) {
-			key := strconv.Itoa(rand.Intn(INT_MAX))
-			e, err := WriteEntry(k2v, v2k, key)
-			assert.Nil(t, err)
-			// lookup in DB
-			k2v.View(func(txn *badger.Txn) error {
-				item, err := txn.Get([]byte(e.Key))
-				assert.Nil(t, err)
-				assert.NotNil(t, item)
-				// assert correct key / value
-				assert.Equal(t, e.Key, string(item.Key()))
-				v, _ := item.Value()
-				assert.Equal(t, strconv.Itoa(e.Value), string(v))
-				return nil
-			})
-		})
-		t.Run("adds correct entry to v:k", func(t *testing.T) {
-			key := strconv.Itoa(rand.Intn(INT_MAX))
-			e, err := WriteEntry(k2v, v2k, key)
-			assert.Nil(t, err)
-			// lookup in DB
-			v2k.View(func(txn *badger.Txn) error {
-				valAsString := strconv.Itoa(e.Value)
-				item, err := txn.Get([]byte(valAsString))
-				assert.Nil(t, err)
-				assert.NotNil(t, item)
-				// assert correct key / value
-				assert.Equal(t, valAsString, string(item.Key()))
-				k, _ := item.Value()
-				assert.Equal(t, e.Key, string(k))
-				return nil
-			})
-		})
-		t.Run("does not add if key already exists", func(t *testing.T) {
-			key := strconv.Itoa(rand.Intn(INT_MAX))
-			e, err := WriteEntry(k2v, v2k, key)
-			assert.Nil(t, err)
-			assert.NotNil(t, e)
-			// should fail on second write
-			e, err = WriteEntry(k2v, v2k, e.Key)
-			assert.NotNil(t, err)
-			assert.Equal(t, Entry{}, e)
-		})
-	})
 }
 
 func TestCreateIfDoesntExist(t *testing.T) {
@@ -185,8 +153,7 @@ func TestCreateIfDoesntExist(t *testing.T) {
 			ExpectedEntriesLength: 0,
 			ExpectedErrors:        []string{},
 			Setup: func() {
-				_, err := WriteEntry(k2v, v2k, "alreadyExists")
-				require.NoError(t, err)
+				WriteEntry(k2v, v2k, "alreadyExists")
 			},
 		},
 		Test{
@@ -196,8 +163,7 @@ func TestCreateIfDoesntExist(t *testing.T) {
 			ExpectedEntriesLength: 0,
 			ExpectedErrors:        []string{"Entry alreadyExists1 already exists"},
 			Setup: func() {
-				_, err := WriteEntry(k2v, v2k, "alreadyExists1")
-				require.NoError(t, err)
+				WriteEntry(k2v, v2k, "alreadyExists1")
 			},
 		},
 		Test{
@@ -207,8 +173,7 @@ func TestCreateIfDoesntExist(t *testing.T) {
 			ExpectedEntriesLength: 3,
 			ExpectedErrors:        []string{},
 			Setup: func() {
-				_, err := WriteEntry(k2v, v2k, "alreadyExists2")
-				require.NoError(t, err)
+				WriteEntry(k2v, v2k, "alreadyExists2")
 			},
 		},
 	}

@@ -50,14 +50,13 @@ func ConnectToDb() (*badger.DB, *badger.DB, error) {
 	return k2v, v2k, err
 }
 
-var KEY_NOT_FOUND = "Key not found"
 var INT_MAX = 999999999 // python max int
 
-// writes entry to both dbs
-func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) (Entry, error) {
+// creates new Entry object to be written
+// assumed that key is not duplicate
+func GenerateEntry(v2k *badger.DB, k string) (Entry, error) {
 	v := rand.Intn(INT_MAX)
 	val := []byte(strconv.Itoa(v))
-	key := []byte(k)
 	// assert that keys and values do not already exist
 	err := v2k.View(func(txn *badger.Txn) error {
 		// keep creating random ints until is found
@@ -65,7 +64,7 @@ func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) (Entry, error) {
 		for !keyIsUnique {
 			_, err := txn.Get(val)
 			// key not found, stopping condition
-			if err != nil && err.Error() == KEY_NOT_FOUND {
+			if err != nil && err == badger.ErrKeyNotFound {
 				keyIsUnique = true
 			} else if err != nil {
 				// normal error
@@ -76,33 +75,6 @@ func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) (Entry, error) {
 			val = []byte(strconv.Itoa(v))
 		}
 		return nil
-	})
-	// check that key doesnt exist
-	err = k2v.View(func(txn *badger.Txn) error {
-		_, err := txn.Get(key)
-		// expected KEY_NOT_FOUND error
-		if err == nil {
-			return fmt.Errorf("Entry already exists in DB for '%s'", k)
-		}
-		// normal error
-		if err.Error() != KEY_NOT_FOUND {
-			return err
-		}
-		// KEY_NOT_FOUND error thrown
-		return nil
-	})
-
-	// error on retrieval
-	if err != nil {
-		return Entry{}, err
-	}
-	// update k2v with k : v
-	err = k2v.Update(func(txn *badger.Txn) error {
-		return txn.Set(key, val)
-	})
-	// write v:k
-	err = v2k.Update(func(txn *badger.Txn) error {
-		return txn.Set(val, key)
 	})
 	return Entry{k, v}, err
 }
@@ -118,8 +90,44 @@ func CreateIfDoesntExist(
 	entries []Entry,
 	errors []string,
 ) {
+	// initialize return variables
 	entries = []Entry{}
 	errors = []string{}
+	keysToWriteToDB := []string{}
+	// find entries to create
+	k2v.View(func(txn *badger.Txn) error {
+		for _, k := range keys {
+			// expect KEY_NOT_FOUND error
+			_, err := txn.Get([]byte(k))
+			if err == badger.ErrKeyNotFound {
+				keysToWriteToDB = append(keysToWriteToDB, k)
+			} else if !muteAlreadyExists && err == nil {
+				// key already exists in DB
+				errors = append(errors, fmt.Sprintf("Key %s already exists in DB", k))
+			} else if err != nil {
+				// io error on lookup
+				logErr("Error on looking up key %s: %v", k, err)
+				errors = append(errors, err.Error())
+			}
+		}
+		return nil
+	})
+
+	// create batch write
+	// k2vWB := k2v.NewWriteBatch()
+	// defer k2vWB.Cancel()
+	// // write entries
+	// for _, k := range keys {
+	// 	err := k2vWB.Set(key(i), value(i), 0) // Will create txns as needed.
+	// 	if err == badger.ErrKeyNotFound {
+	//
+	// 	}
+	// }
+	//
+	// err := k2vWB.Flush(); err != nil {
+	// 	log.Errorf("Error flushing k2v Write Batch %v", err)
+	// 	errors = append(errors, error.Error())
+	// }
 
 	return entries, errors
 }
