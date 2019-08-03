@@ -64,7 +64,7 @@ func TestCreateEntriesEntry(t *testing.T) {
 			Body:                  []byte(`["testKey"]`),
 			ExpectedCode:          200,
 			ExpectedEntriesLength: 0,
-			ExpectedErrors:        []string{"Key 'testKey' already exists"},
+			ExpectedErrors:        []string{"Key testKey already exists in DB"},
 			Method:                "POST",
 		},
 		Test{

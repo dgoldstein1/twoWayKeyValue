@@ -61,8 +61,8 @@ func (s *Server) CreateEntries(c *gin.Context) {
 	}
 	// create dbs
 	entries, errors := CreateIfDoesntExist(
-		removeDuplicates(keysToCreate), // remove duplicates from keys passed
-		true,                           // log or dont log already exists errors
+		removeDuplicates(keysToCreate),              // remove duplicates from keys passed
+		c.Query("muteAlreadyExistsError") == "true", // log or dont log already exists errors
 		s.K2v,
 		s.V2k,
 	)
