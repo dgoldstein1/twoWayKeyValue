@@ -142,6 +142,90 @@ func TestWriteEntry(t *testing.T) {
 			assert.Equal(t, Entry{}, e)
 		})
 	})
+}
+
+func TestCreateIfDoesntExist(t *testing.T) {
+	loadPath := "/tmp/twowaykv/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	defer os.RemoveAll(loadPath)
+	require.NoError(t, err)
+	// setup, create DBs
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	k2v, v2k, err := ConnectToDb()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Nil(t, err)
+	assert.NotNil(t, k2v, v2k)
+	defer k2v.Close()
+	defer v2k.Close()
+
+	type Test struct {
+		Name                  string
+		Keys                  []string
+		MuteAlreadyExists     bool
+		ExpectedEntriesLength int
+		ExpectedErrors        []string
+		Setup                 func()
+	}
+
+	testTable := []Test{
+		Test{
+			Name:                  "adds entries succesfully",
+			Keys:                  []string{"test1", "test2"},
+			MuteAlreadyExists:     false,
+			ExpectedEntriesLength: 2,
+			ExpectedErrors:        []string{},
+			Setup:                 func() {},
+		},
+		Test{
+			Name:                  "(MuteAlreadyExists=true)",
+			Keys:                  []string{"alreadyExists"},
+			MuteAlreadyExists:     true,
+			ExpectedEntriesLength: 0,
+			ExpectedErrors:        []string{},
+			Setup: func() {
+				_, err := WriteEntry(k2v, v2k, "alreadyExists")
+				require.NoError(t, err)
+			},
+		},
+		Test{
+			Name:                  "(MuteAlreadyExists=false)",
+			Keys:                  []string{"alreadyExists1"},
+			MuteAlreadyExists:     false,
+			ExpectedEntriesLength: 0,
+			ExpectedErrors:        []string{"Entry alreadyExists1 already exists"},
+			Setup: func() {
+				_, err := WriteEntry(k2v, v2k, "alreadyExists1")
+				require.NoError(t, err)
+			},
+		},
+		Test{
+			Name:                  "Mix of already exists and new",
+			Keys:                  []string{"key", "key1", "key2", "alreadyExists2"},
+			MuteAlreadyExists:     true,
+			ExpectedEntriesLength: 3,
+			ExpectedErrors:        []string{},
+			Setup: func() {
+				_, err := WriteEntry(k2v, v2k, "alreadyExists2")
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Setup()
+			entries, errors := CreateIfDoesntExist(
+				test.Keys,
+				test.MuteAlreadyExists,
+				k2v,
+				v2k,
+			)
+			assert.Equal(t, test.ExpectedEntriesLength, len(entries))
+			assert.Equal(t, test.ExpectedErrors, errors)
+		})
+	}
 
 }
 

@@ -107,14 +107,20 @@ func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) (Entry, error) {
 	return Entry{k, v}, err
 }
 
+// adds new entry to DB if doesnt already exist
+// MuteAlreadyExists does not add errors to list if key already exists
 func CreateIfDoesntExist(
 	keys []string,
+	muteAlreadyExists bool,
 	k2v *badger.DB,
 	v2k *badger.DB,
 ) (
 	entries []Entry,
 	errors []string,
 ) {
+	entries = []Entry{}
+	errors = []string{}
+
 	return entries, errors
 }
 

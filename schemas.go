@@ -8,7 +8,7 @@ import (
 type Server struct {
 	K2v                 *badger.DB
 	V2k                 *badger.DB
-	CreateIfDoesntExist func([]string, *badger.DB, *badger.DB) ([]Entry, []string)
+	CreateIfDoesntExist func([]string, bool, *badger.DB, *badger.DB) ([]Entry, []string)
 }
 
 type Entry struct {
