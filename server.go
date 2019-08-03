@@ -55,10 +55,6 @@ func (s *Server) CreateEntries(c *gin.Context) {
 		c.JSON(400, Error{400, err.Error()})
 		return
 	}
-	if len(keysToCreate) == 0 {
-		c.JSON(400, "Bad []entry or no entries passed")
-		return
-	}
 	// create dbs
 	entries, errors := CreateIfDoesntExist(
 		removeDuplicates(keysToCreate),              // remove duplicates from keys passed
