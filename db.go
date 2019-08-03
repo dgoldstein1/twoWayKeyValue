@@ -107,34 +107,14 @@ func WriteEntry(k2v *badger.DB, v2k *badger.DB, k string) (Entry, error) {
 	return Entry{k, v}, err
 }
 
-// retrieves entry using either key or value
-func GetEntries(db *badger.DB, dbKeys []string) (map[string]string, []RetrievalError) {
-	errors := []RetrievalError{}
-	entries := map[string]string{}
-	// read from DB
-	db.View(func(txn *badger.Txn) error {
-		// read each key in DB
-		for _, k := range dbKeys {
-			item, err := txn.Get([]byte(k))
-			if err != nil {
-				errors = append(errors, RetrievalError{
-					LookupId: k,
-					Error:    err.Error(),
-					NotFound: err.Error() == KEY_NOT_FOUND,
-				})
-			} else {
-				// key exists
-				v, err := item.Value()
-				if err != nil {
-					errors = append(errors, RetrievalError{k, err.Error(), false})
-				}
-				// add new Entry to list
-				entries[k] = string(v)
-			}
-		}
-		// return out of View function
-		return nil
-	})
+func CreateIfDoesntExist(
+	keys []string,
+	k2v *badger.DB,
+	v2k *badger.DB,
+) (
+	entries []Entry,
+	errors []string,
+) {
 	return entries, errors
 }
 

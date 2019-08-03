@@ -14,7 +14,7 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 		logFatalf("Could not establish connection to db: %v", err)
 	}
 	// create server object
-	s := Server{kDB, vDB, WriteEntry, GetEntries}
+	s := Server{kDB, vDB, CreateIfDoesntExist}
 	// define endpoints
 	router := gin.Default()
 	router.Use(gin.Logger())
@@ -61,6 +61,7 @@ func (s *Server) CreateEntries(c *gin.Context) {
 	}
 	// remove duplicates from keys passed
 	keysToCreate = removeDuplicates(keysToCreate)
+
 	// finally return everything!!
 	c.JSON(200, RetrieveEntryResponse{})
 }

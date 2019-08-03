@@ -145,51 +145,6 @@ func TestWriteEntry(t *testing.T) {
 
 }
 
-func TestGetEntries(t *testing.T) {
-	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
-	os.MkdirAll(testingDir, os.ModePerm)
-	k2v, v2k, err := ConnectToDb()
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Nil(t, err)
-	assert.NotNil(t, k2v, v2k)
-	defer k2v.Close()
-	defer v2k.Close()
-	// write entry to DBs
-	key := strconv.Itoa(rand.Intn(INT_MAX))
-	e, err := WriteEntry(k2v, v2k, key)
-	assert.Nil(t, err)
-	valAsString := strconv.Itoa(e.Value)
-	t.Run("Gets correct entries from string", func(t *testing.T) {
-		e, err := GetEntries(k2v, []string{key})
-		assert.Equal(t, []RetrievalError{}, err)
-		assert.Equal(t, len(e), 1)
-		if len(e) == 1 {
-			valAsInt, err := strconv.Atoi(e[key])
-			assert.Nil(t, err)
-			assert.Equal(t, valAsInt < INT_MAX, true)
-		}
-	})
-	t.Run("Gets correct entry from value", func(t *testing.T) {
-		e, err := GetEntries(v2k, []string{valAsString})
-		assert.Equal(t, []RetrievalError{}, err)
-		assert.Equal(t, len(e), 1)
-		if len(e) == 1 {
-			assert.Equal(t, key, e[valAsString])
-		}
-	})
-	t.Run("returns correct retrieval errors when not found", func(t *testing.T) {
-		key := "Sdf23-f2-39if"
-		entries, errors := GetEntries(v2k, []string{key})
-		assert.Equal(t, 0, len(entries))
-		assert.Equal(t, 1, len(errors))
-		assert.Equal(t, true, errors[0].NotFound)
-		assert.Equal(t, key, errors[0].LookupId)
-	})
-	t.Run("throws errors on incorrect lookup", func(t *testing.T) {})
-}
-
 func TestZipDb(t *testing.T) {
 	t.Run("throws error when path does not exist", func(t *testing.T) {
 		os.Setenv("GRAPH_DB_STORE_DIR", "")

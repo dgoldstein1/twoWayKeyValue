@@ -6,10 +6,9 @@ import (
 
 // server environment
 type Server struct {
-	K2v        *badger.DB
-	V2k        *badger.DB
-	WriteEntry func(*badger.DB, *badger.DB, string) (Entry, error)
-	GetEntries func(*badger.DB, []string) (map[string]string, []RetrievalError)
+	K2v                 *badger.DB
+	V2k                 *badger.DB
+	CreateIfDoesntExist func([]string, *badger.DB, *badger.DB) ([]Entry, []string)
 }
 
 type Entry struct {
