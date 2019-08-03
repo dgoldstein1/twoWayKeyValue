@@ -117,23 +117,56 @@ func CreateIfDoesntExist(
 		return nil
 	})
 
-	// create batch write
-	// k2vWB := k2v.NewWriteBatch()
-	// defer k2vWB.Cancel()
-	// // write entries
-	// for _, k := range keys {
-	// 	err := k2vWB.Set(key(i), value(i), 0) // Will create txns as needed.
-	// 	if err == badger.ErrKeyNotFound {
-	//
-	// 	}
-	// }
-	//
-	// err := k2vWB.Flush(); err != nil {
-	// 	log.Errorf("Error flushing k2v Write Batch %v", err)
-	// 	errors = append(errors, error.Error())
-	// }
-
+	// batch write keys
+	k2vWB := k2v.NewWriteBatch()
+	v2kWB := v2k.NewWriteBatch()
+	defer k2vWB.Cancel()
+	defer v2kWB.Cancel()
+	// write entries to both DBs
+	for _, k := range keys {
+		e, err := writeEntryToDB(v2k, k2vWB, v2kWB, k)
+		if err != nil {
+			logErr("Could not create entry %+v: %v", e, err)
+		} else {
+			entries = append(entries, e)
+		}
+	}
+	// flush transactions
+	if err := v2kWB.Flush(); err != nil {
+		logErr("Error flushing v2k Write Batch %v", err)
+		errors = append(errors, err.Error())
+	}
+	if err := k2vWB.Flush(); err != nil {
+		logErr("Error flushing k2v Write Batch %v", err)
+		errors = append(errors, err.Error())
+	}
 	return entries, errors
+}
+
+// creates and writes a new entry to DB in batch mode
+func writeEntryToDB(
+	v2k *badger.DB,
+	kv2WB *badger.WriteBatch,
+	v2kWB *badger.WriteBatch,
+	key string,
+) (e Entry, err error) {
+	// create new
+	e, err = GenerateEntry(v2k, key)
+	if err != nil {
+		logErr("Error generating entry %s: %v", key, err)
+		return Entry{}, err
+	}
+	// write to DB
+	v := []byte(strconv.Itoa(e.Value))
+	k := []byte(e.Key)
+	if err = kv2WB.Set(k, v); err != nil {
+		logErr("Error setting k2v %+v: %v", e, err)
+		return Entry{}, err
+	}
+	if err = v2kWB.Set(v, k); err != nil {
+		logErr("Error setting v2k %+v: %v", e, err)
+	}
+	return e, err
 }
 
 // creates zip file of

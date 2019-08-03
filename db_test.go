@@ -83,16 +83,20 @@ func TestConnectToDb(t *testing.T) {
 		err = k2v.View(func(txn *badger.Txn) error {
 			item, err := txn.Get(testKey)
 			require.Nil(t, err)
-			v, err := item.Value()
-			assert.Equal(t, testVal, v)
+			item.Value(func(v []byte) error {
+				assert.Equal(t, testVal, v)
+				return nil
+			})
 			return err
 		})
 		require.Nil(t, err)
 		err = v2k.View(func(txn *badger.Txn) error {
 			item, err := txn.Get(testVal)
 			require.Nil(t, err)
-			k, err := item.Value()
-			assert.Equal(t, testKey, k)
+			item.Value(func(k []byte) error {
+				assert.Equal(t, testKey, k)
+				return nil
+			})
 			return err
 		})
 		require.Nil(t, err)
