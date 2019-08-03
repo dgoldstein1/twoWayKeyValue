@@ -1,8 +1,6 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/zsais/go-gin-prometheus"
 	"net/http"
@@ -34,17 +32,6 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	router.GET("/export", s.ExportDB)
 	// return server
 	return router, &s
-}
-
-// validate key and value
-func ValidatEntry(e Entry) error {
-	if e.Key == "" && e.Value == 0 {
-		return errors.New("Must provide valid key or value query string")
-	}
-	if e.Value < 0 {
-		return fmt.Errorf("Invalid int '%d'", e.Value)
-	}
-	return nil
 }
 
 // removes duplicate keys in array
