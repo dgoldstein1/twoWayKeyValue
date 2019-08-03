@@ -20,24 +20,7 @@ func ConnectToDb() (*badger.DB, *badger.DB, error) {
 	k2vPath := dir + K2V_PATH
 
 	// setup db properties
-	options := badger.Options{
-		Dir:                     k2vPath,
-		ValueDir:                k2vPath,
-		LevelOneSize:            256 << 20,
-		LevelSizeMultiplier:     10,
-		MaxLevels:               7,
-		MaxTableSize:            64 << 20,
-		NumCompactors:           2, // Compactions can be expensive. Only run 2.
-		NumLevelZeroTables:      5,
-		NumLevelZeroTablesStall: 10,
-		NumMemtables:            5,
-		SyncWrites:              true,
-		NumVersionsToKeep:       1,
-		ValueLogFileSize:        1<<30 - 1,
-		ValueLogMaxEntries:      1000000,
-		ValueThreshold:          32,
-		Truncate:                false,
-	}
+	options := badger.DefaultOptions(k2vPath)
 	// create keys => values DB
 	k2v, err := badger.Open(options)
 	if err != nil {

@@ -9,7 +9,9 @@ import (
 // entrypoint
 func SetupRouter(docs string) (*gin.Engine, *Server) {
 	// try to connect to db
+	logMsg("Connecting to DB")
 	kDB, vDB, err := ConnectToDb()
+	logMsg("Done.")
 	if err != nil {
 		logFatalf("Could not establish connection to db: %v", err)
 	}
