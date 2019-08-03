@@ -244,6 +244,58 @@ func TestCreateIfDoesntExist(t *testing.T) {
 
 }
 
+func TestwriteEntryToDB(t *testing.T) {
+	// setup, create DBs
+	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
+	k2v, v2k, err := ConnectToDb()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Nil(t, err)
+	assert.NotNil(t, k2v, v2k)
+	defer k2v.Close()
+	defer v2k.Close()
+	k2vWB := k2v.NewWriteBatch()
+	v2kWB := v2k.NewWriteBatch()
+	defer k2vWB.Cancel()
+	defer v2kWB.Cancel()
+
+	type Test struct {
+		Name          string
+		Key           string
+		ExpectedError string
+		Setup         func()
+		TearDown      func()
+	}
+
+	testTable := []Test{
+		Test{
+			Name:          "creates entry succesfully",
+			Key:           "testkey910",
+			ExpectedError: "",
+			Setup:         func() {},
+			TearDown:      func() {},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Setup()
+			_, err := writeEntryToDB(v2k, k2vWB, v2kWB, test.Key)
+			if err == nil {
+				assert.Equal(t, test.ExpectedError, "")
+			} else {
+				assert.Equal(t, test.ExpectedError, err.Error())
+			}
+			test.TearDown()
+		})
+	}
+
+	v2kWB.Flush()
+	k2vWB.Flush()
+
+}
+
 func TestZipDb(t *testing.T) {
 	t.Run("throws error when path does not exist", func(t *testing.T) {
 		os.Setenv("GRAPH_DB_STORE_DIR", "")
