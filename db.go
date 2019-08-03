@@ -102,12 +102,19 @@ func CreateIfDoesntExist(
 	k2v.View(func(txn *badger.Txn) error {
 		for _, k := range keys {
 			// expect KEY_NOT_FOUND error
-			_, err := txn.Get([]byte(k))
+			item, err := txn.Get([]byte(k))
 			if err == badger.ErrKeyNotFound {
 				keysToWriteToDB = append(keysToWriteToDB, k)
-			} else if !muteAlreadyExists && err == nil {
+			} else if err == nil {
 				// key already exists in DB
-				errors = append(errors, fmt.Sprintf("Key %s already exists in DB", k))
+				if !muteAlreadyExists {
+					errors = append(errors, fmt.Sprintf("Key %s already exists in DB", k))
+				}
+				// add to response
+				key := string(item.KeyCopy(nil))
+				v, _ := item.ValueCopy(nil)
+				val, _ := strconv.Atoi(string(v))
+				entries = append(entries, Entry{key, val})
 			} else if err != nil {
 				// io error on lookup
 				logErr("Error on looking up key %s: %v", k, err)
