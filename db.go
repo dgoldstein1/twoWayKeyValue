@@ -20,24 +20,7 @@ func ConnectToDb() (*badger.DB, *badger.DB, error) {
 	k2vPath := dir + K2V_PATH
 
 	// setup db properties
-	options := badger.Options{
-		Dir:                     k2vPath,
-		ValueDir:                k2vPath,
-		LevelOneSize:            256 << 20,
-		LevelSizeMultiplier:     10,
-		MaxLevels:               7,
-		MaxTableSize:            64 << 20,
-		NumCompactors:           2, // Compactions can be expensive. Only run 2.
-		NumLevelZeroTables:      5,
-		NumLevelZeroTablesStall: 10,
-		NumMemtables:            5,
-		SyncWrites:              true,
-		NumVersionsToKeep:       1,
-		ValueLogFileSize:        1<<30 - 1,
-		ValueLogMaxEntries:      1000000,
-		ValueThreshold:          32,
-		Truncate:                false,
-	}
+	options := badger.DefaultOptions(k2vPath)
 	// create keys => values DB
 	k2v, err := badger.Open(options)
 	if err != nil {
@@ -102,12 +85,19 @@ func CreateIfDoesntExist(
 	k2v.View(func(txn *badger.Txn) error {
 		for _, k := range keys {
 			// expect KEY_NOT_FOUND error
-			_, err := txn.Get([]byte(k))
+			item, err := txn.Get([]byte(k))
 			if err == badger.ErrKeyNotFound {
 				keysToWriteToDB = append(keysToWriteToDB, k)
-			} else if !muteAlreadyExists && err == nil {
+			} else if err == nil {
 				// key already exists in DB
-				errors = append(errors, fmt.Sprintf("Key %s already exists in DB", k))
+				if !muteAlreadyExists {
+					errors = append(errors, fmt.Sprintf("Key %s already exists in DB", k))
+				}
+				// add to response
+				key := string(item.KeyCopy(nil))
+				v, _ := item.ValueCopy(nil)
+				val, _ := strconv.Atoi(string(v))
+				entries = append(entries, Entry{key, val})
 			} else if err != nil {
 				// io error on lookup
 				logErr("Error on looking up key %s: %v", k, err)

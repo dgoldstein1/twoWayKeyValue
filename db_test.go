@@ -200,7 +200,7 @@ func TestCreateIfDoesntExist(t *testing.T) {
 			Name:                  "(MuteAlreadyExists=true)",
 			Keys:                  []string{"alreadyExists"},
 			MuteAlreadyExists:     true,
-			ExpectedEntriesLength: 0,
+			ExpectedEntriesLength: 1,
 			ExpectedErrors:        []string{},
 			Setup: func() {
 				_WriteEntryHelper(k2v, v2k, "alreadyExists")
@@ -210,7 +210,7 @@ func TestCreateIfDoesntExist(t *testing.T) {
 			Name:                  "(MuteAlreadyExists=false)",
 			Keys:                  []string{"alreadyExists1"},
 			MuteAlreadyExists:     false,
-			ExpectedEntriesLength: 0,
+			ExpectedEntriesLength: 1,
 			ExpectedErrors:        []string{"Key alreadyExists1 already exists in DB"},
 			Setup: func() {
 				_WriteEntryHelper(k2v, v2k, "alreadyExists1")
@@ -220,7 +220,7 @@ func TestCreateIfDoesntExist(t *testing.T) {
 			Name:                  "Mix of already exists and new",
 			Keys:                  []string{"key", "key1", "key2", "alreadyExists2"},
 			MuteAlreadyExists:     true,
-			ExpectedEntriesLength: 3,
+			ExpectedEntriesLength: 4,
 			ExpectedErrors:        []string{},
 			Setup: func() {
 				_WriteEntryHelper(k2v, v2k, "alreadyExists2")
