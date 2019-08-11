@@ -164,6 +164,7 @@ func ZipDb() (fileName string, err error) {
 	dir := os.Getenv("GRAPH_DB_STORE_DIR")
 	fileName = dir + "/twowaykv_export.zip"
 	// run zip command in bash
+	logMsg("loading %s", fileName)
 	out, err := exec.Command(
 		"zip",
 		"-r",
@@ -171,6 +172,7 @@ func ZipDb() (fileName string, err error) {
 		dir+K2V_PATH,
 		dir+V2K_PATH,
 	).Output()
+	logMsg("Running %s", string(out))
 	if err != nil {
 		err = errors.New(string(out))
 	}
