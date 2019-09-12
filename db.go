@@ -165,6 +165,40 @@ func readRandomEntries(
 	entries []Entry,
 	errors []error,
 ) {
+	// get random number within range of max values
+	v := rand.Intn(INT_MAX)
+	// find closest N values to that v
+	v2k.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = n
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		// start iterator at random N
+		it.Seek([]byte(strconv.Itoa(v)))
+		// find N items in a row
+		for i := 0; i < n && it.Valid(); it.Next() {
+			item := it.Item()
+			// key should be an int value
+			val, err := strconv.Atoi(string(item.Key()))
+			if err != nil {
+				logErr("Could not convert %v to int: %v", it.Item(), err)
+				errors = append(errors, err)
+			} else {
+				// get keys and values from item
+				item.Value(func(v []byte) error {
+					entries = append(entries, Entry{
+						Key:   string(v),
+						Value: val,
+					})
+					return nil
+				})
+
+			}
+			i++
+		}
+
+		return nil
+	})
 
 	return entries, errors
 }

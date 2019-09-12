@@ -314,6 +314,7 @@ func TestReadRandomEntries(t *testing.T) {
 		ExpectedEntriesLength int
 		ExpectedErrorsLength  int
 		Setup                 func()
+		TearDown              func()
 	}
 
 	testTable := []Test{
@@ -328,17 +329,35 @@ func TestReadRandomEntries(t *testing.T) {
 				})
 				require.Nil(t, err)
 			},
+			TearDown: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					return txn.Delete([]byte(strconv.Itoa(1)))
+				})
+				require.Nil(t, err)
+			},
 		},
 		Test{
 
 			Name:                  "get 5 random entries",
-			n:                     1,
+			n:                     5,
 			ExpectedEntriesLength: 6,
 			ExpectedErrorsLength:  0,
 			Setup: func() {
 				err := v2k.Update(func(txn *badger.Txn) error {
 					for i := 0; i < 5; i++ {
 						if e := txn.Set([]byte(strconv.Itoa(i+2)), []byte("TEST-KEY")); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+
+				err := v2k.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 5; i++ {
+						if e := txn.Delete([]byte(strconv.Itoa(i + 2))); e != nil {
 							return e
 						}
 					}
@@ -355,6 +374,7 @@ func TestReadRandomEntries(t *testing.T) {
 			entries, errors := readRandomEntries(v2k, test.n)
 			assert.Equal(t, test.ExpectedEntriesLength, len(entries))
 			assert.Equal(t, test.ExpectedErrorsLength, len(errors))
+			test.TearDown()
 		})
 	}
 }
