@@ -51,6 +51,7 @@ func TestRandomEntries(t *testing.T) {
 	type Test struct {
 		Name                  string
 		Path                  string
+		Before                func()
 		ExpectedCode          int
 		ExpectedEntriesLength int
 		ExpectedError         string
@@ -64,7 +65,47 @@ func TestRandomEntries(t *testing.T) {
 		Test{
 			Name:                  "gets random entry",
 			Path:                  "/random",
+			Before:                func() {},
 			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			Method:                "GET",
+		},
+		Test{
+			Name:                  "invalid int",
+			Path:                  "/random?n=XXXXX",
+			Before:                func() {},
+			ExpectedCode:          400,
+			ExpectedError:         "Invalid int",
+			ExpectedEntriesLength: 1,
+			Method:                "GET",
+		},
+		Test{
+			Name:                  "invalid int",
+			Path:                  "/random?n=-34234",
+			Before:                func() {},
+			ExpectedCode:          400,
+			ExpectedError:         "'n' must be positive and greater than 25",
+			ExpectedEntriesLength: 1,
+			Method:                "GET",
+		},
+		Test{
+			Name: "returns error from db call",
+			Path: "/random",
+			Before: func() {
+				// insert some randm stuff into db
+				err = s.V2k.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 10; i++ {
+						if e := txn.Delete([]byte(strconv.Itoa(i + 2))); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+			ExpectedCode:          500,
+			ExpectedError:         "max retries reached",
 			ExpectedEntriesLength: 1,
 			Method:                "GET",
 		},
@@ -72,6 +113,7 @@ func TestRandomEntries(t *testing.T) {
 
 	for _, test := range testTable {
 		t.Run(test.Name, func(t *testing.T) {
+			test.Before()
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer([]byte("")))
 			req.Header.Add("Content-Type", "application/json")
@@ -94,7 +136,7 @@ func TestRandomEntries(t *testing.T) {
 			} else {
 				resp := Error{}
 				err := json.Unmarshal(body, &resp)
-				assert.Nil(t, err)
+				require.Nil(t, err)
 				assert.Equal(t, test.ExpectedError, resp.Error)
 				assert.Equal(t, test.ExpectedCode, resp.Code)
 			}

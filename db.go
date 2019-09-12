@@ -183,7 +183,6 @@ func readRandomEntries(
 				k, _ := strconv.Atoi(string(it.Item().Key()))
 				// prefix found, make sure id is't 0
 				if k != 0 && !m[k] {
-					fmt.Printf("found key %v\n", k)
 					it.Item().Value(func(v []byte) error {
 						// add to entries
 						entries = append(entries, Entry{string(v), k})

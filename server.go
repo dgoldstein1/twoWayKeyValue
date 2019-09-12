@@ -79,12 +79,12 @@ func (s *Server) RandomEntries(c *gin.Context) {
 		return
 	}
 	if n > 25 || n < 1 {
-		c.JSON(400, Error{400, "'n' must be positive and greater than " + string(MAX_N)})
+		c.JSON(400, Error{400, "'n' must be positive and greater than " + strconv.Itoa(MAX_N)})
 		return
 	}
 	entries, err := readRandomEntries(s.V2k, n)
 	if err != nil {
-		c.JSON(500, err.Error())
+		c.JSON(500, Error{500, err.Error()})
 		return
 	}
 	// success

@@ -320,24 +320,6 @@ func TestReadRandomEntries(t *testing.T) {
 
 	testTable := []Test{
 		Test{
-			Name:                  "get one random entry",
-			n:                     1,
-			ExpectedEntriesLength: 1,
-			ExpectedError:         "",
-			Setup: func() {
-				err := v2k.Update(func(txn *badger.Txn) error {
-					return txn.Set([]byte(strconv.Itoa(34)), []byte("TEST-KEY"))
-				})
-				require.Nil(t, err)
-			},
-			TearDown: func() {
-				err := v2k.Update(func(txn *badger.Txn) error {
-					return txn.Delete([]byte(strconv.Itoa(34)))
-				})
-				require.Nil(t, err)
-			},
-		},
-		Test{
 
 			Name:                  "get 3 random entries with many in DB",
 			ResultIsUnique:        true,
