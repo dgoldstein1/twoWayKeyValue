@@ -312,6 +312,7 @@ func TestReadRandomEntries(t *testing.T) {
 		Name                  string
 		n                     int
 		ExpectedEntriesLength int
+		ResultIsUnique        bool
 		ExpectedError         string
 		Setup                 func()
 		TearDown              func()
@@ -339,6 +340,7 @@ func TestReadRandomEntries(t *testing.T) {
 		Test{
 
 			Name:                  "get 3 random entries with many in DB",
+			ResultIsUnique:        true,
 			n:                     3,
 			ExpectedEntriesLength: 3,
 			ExpectedError:         "",
@@ -415,6 +417,11 @@ func TestReadRandomEntries(t *testing.T) {
 				assert.Equal(t, test.ExpectedError, "")
 			} else {
 				assert.Equal(t, test.ExpectedError, err.Error())
+			}
+			// run test twice, make sure different results
+			if test.ResultIsUnique {
+				entries2, _ := readRandomEntries(v2k, test.n)
+				assert.NotEqual(t, entries, entries2)
 			}
 
 			test.TearDown()
