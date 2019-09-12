@@ -318,7 +318,7 @@ func TestReadRandomEntries(t *testing.T) {
 
 	testTable := []Test{
 		Test{
-			Name:                  "positive test",
+			Name:                  "get one random entry",
 			n:                     1,
 			ExpectedEntriesLength: 1,
 			ExpectedErrorsLength:  0,
@@ -329,10 +329,29 @@ func TestReadRandomEntries(t *testing.T) {
 				require.Nil(t, err)
 			},
 		},
+		Test{
+
+			Name:                  "get 5 random entries",
+			n:                     1,
+			ExpectedEntriesLength: 6,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 5; i++ {
+						if e := txn.Set([]byte("TEST-KEY"), []byte("TEST-VALUE")); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.Name, func(t *testing.T) {
+			test.Setup()
 			entries, errors := readRandomEntries(k2v, test.n)
 			assert.Equal(t, test.ExpectedEntriesLength, len(entries))
 			assert.Equal(t, test.ExpectedErrorsLength, len(errors))
