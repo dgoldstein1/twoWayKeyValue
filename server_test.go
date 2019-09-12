@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	badger "github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"math/rand"
@@ -25,6 +26,124 @@ func TestRemoveDupliactes(t *testing.T) {
 		passed := []string{"k1", "k2", "k3"}
 		assert.Equal(t, passed, removeDuplicates(passed))
 	})
+}
+
+func TestRandomEntries(t *testing.T) {
+
+	loadPath := "/tmp/twowaykv/randomEntries/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	require.NoError(t, err)
+	defer os.RemoveAll(loadPath)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	router, s := SetupRouter("./api/*")
+
+	// insert some randm stuff into db
+	err = s.V2k.Update(func(txn *badger.Txn) error {
+		for i := 0; i < 10; i++ {
+			if e := txn.Set([]byte(strconv.Itoa(i+2)), []byte("TEST-KEY")); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+	require.Nil(t, err)
+
+	type Test struct {
+		Name                  string
+		Path                  string
+		Before                func()
+		ExpectedCode          int
+		ExpectedEntriesLength int
+		ExpectedError         string
+		Setup                 func()
+		Method                string
+	}
+	// used for testing valid value lookup
+	validTestValue := ""
+
+	testTable := []Test{
+		Test{
+			Name:                  "gets random entry",
+			Path:                  "/random",
+			Before:                func() {},
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			Method:                "GET",
+		},
+		Test{
+			Name:                  "invalid int",
+			Path:                  "/random?n=XXXXX",
+			Before:                func() {},
+			ExpectedCode:          400,
+			ExpectedError:         "Invalid int",
+			ExpectedEntriesLength: 1,
+			Method:                "GET",
+		},
+		Test{
+			Name:                  "invalid int",
+			Path:                  "/random?n=-34234",
+			Before:                func() {},
+			ExpectedCode:          400,
+			ExpectedError:         "'n' must be positive and greater than 25",
+			ExpectedEntriesLength: 1,
+			Method:                "GET",
+		},
+		Test{
+			Name: "returns error from db call",
+			Path: "/random",
+			Before: func() {
+				// insert some randm stuff into db
+				err = s.V2k.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 10; i++ {
+						if e := txn.Delete([]byte(strconv.Itoa(i + 2))); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+			ExpectedCode:          500,
+			ExpectedError:         "max collisions reached finding random entries",
+			ExpectedEntriesLength: 1,
+			Method:                "GET",
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Before()
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer([]byte("")))
+			req.Header.Add("Content-Type", "application/json")
+			router.ServeHTTP(w, req)
+			assert.Equal(t, test.ExpectedCode, w.Code)
+
+			// fmt.Println(" ****> POST: " + string(test.Body))
+			body := []byte(w.Body.String())
+			if test.ExpectedCode == 200 {
+				resp := []Entry{}
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedEntriesLength, len(resp))
+				// set createdEntry on success
+				if len(resp) > 0 {
+					assert.NotEqual(t, 0, resp[0].Value)
+					validTestValue = strconv.Itoa(resp[0].Value)
+					assert.NotEqual(t, "0", validTestValue)
+				}
+			} else {
+				resp := Error{}
+				err := json.Unmarshal(body, &resp)
+				require.Nil(t, err)
+				assert.Equal(t, test.ExpectedError, resp.Error)
+				assert.Equal(t, test.ExpectedCode, resp.Code)
+			}
+		})
+
+	}
+
 }
 
 func TestCreateEntriesEntry(t *testing.T) {

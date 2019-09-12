@@ -156,3 +156,50 @@ func writeEntryToDB(
 	}
 	return e, err
 }
+
+// reads a number of random entries from DB
+func readRandomEntries(
+	v2k *badger.DB,
+	n int,
+) (
+	entries []Entry,
+	err error,
+) {
+	// open up DB read
+	err = v2k.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = n
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		// keep track of tries
+		m := make(map[int]bool)
+		maxRetries := n * 5
+		tries := 0
+		// loop through different random numbers and seek at that n
+		for prefix := rand.Intn(INT_MAX); len(entries) < n; prefix = rand.Intn(INT_MAX) {
+			// start iterator at random N
+			it.Seek([]byte(strconv.Itoa(prefix)))
+			if it.Valid() {
+				k, _ := strconv.Atoi(string(it.Item().Key()))
+				// prefix found, make sure id is't 0
+				if k != 0 && !m[k] {
+					it.Item().Value(func(v []byte) error {
+						// add to entries
+						entries = append(entries, Entry{string(v), k})
+						m[k] = true
+						return nil
+					})
+				}
+			}
+			// could not find key, incr tries
+			tries++
+			// return error if too many retries
+			if tries > maxRetries {
+				return fmt.Errorf("max collisions reached finding random entries")
+			}
+		}
+		// exit db.view
+		return nil
+	})
+	return entries, err
+}

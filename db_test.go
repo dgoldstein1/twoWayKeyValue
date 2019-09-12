@@ -295,3 +295,118 @@ func TestwriteEntryToDB(t *testing.T) {
 	k2vWB.Flush()
 
 }
+
+func TestReadRandomEntries(t *testing.T) {
+	// setup, create DBs
+	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
+	k2v, v2k, err := ConnectToDb()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Nil(t, err)
+	assert.NotNil(t, k2v, v2k)
+	defer k2v.Close()
+	defer v2k.Close()
+
+	type Test struct {
+		Name                  string
+		n                     int
+		ExpectedEntriesLength int
+		ResultIsUnique        bool
+		ExpectedError         string
+		Setup                 func()
+		TearDown              func()
+	}
+
+	testTable := []Test{
+		Test{
+
+			Name:                  "get 3 random entries with many in DB",
+			ResultIsUnique:        true,
+			n:                     3,
+			ExpectedEntriesLength: 3,
+			ExpectedError:         "",
+			Setup: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 100; i++ {
+						if e := txn.Set([]byte(strconv.Itoa(i+2)), []byte("TEST-KEY")); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+
+				err := v2k.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 100; i++ {
+						if e := txn.Delete([]byte(strconv.Itoa(i + 2))); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
+		Test{
+
+			Name:                  "get 5 random entries when there are 5 in db",
+			n:                     5,
+			ExpectedEntriesLength: 5,
+			ExpectedError:         "",
+			Setup: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 5; i++ {
+						if e := txn.Set([]byte(strconv.Itoa(i+2)), []byte("TEST-KEY")); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+
+				err := v2k.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 5; i++ {
+						if e := txn.Delete([]byte(strconv.Itoa(i + 2))); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
+		Test{
+			Name:                  "returns error when there are not enough entries in DB",
+			n:                     10,
+			ExpectedEntriesLength: 0,
+			ExpectedError:         "max collisions reached finding random entries",
+			Setup:                 func() {},
+			TearDown:              func() {},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Setup()
+			entries, err := readRandomEntries(v2k, test.n)
+			assert.Equal(t, test.ExpectedEntriesLength, len(entries))
+			if err == nil {
+				assert.Equal(t, test.ExpectedError, "")
+			} else {
+				assert.Equal(t, test.ExpectedError, err.Error())
+			}
+			// run test twice, make sure different results
+			if test.ResultIsUnique {
+				entries2, _ := readRandomEntries(v2k, test.n)
+				assert.NotEqual(t, entries, entries2)
+			}
+
+			test.TearDown()
+		})
+	}
+}

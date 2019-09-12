@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zsais/go-gin-prometheus"
 	"net/http"
+	"strconv"
 )
 
 // entrypoint
@@ -31,6 +32,7 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	p.Use(router)
 	// core endpoints
 	router.POST("/entries", s.CreateEntries)
+	router.GET("/random", s.RandomEntries)
 	// return server
 	return router, &s
 }
@@ -65,4 +67,26 @@ func (s *Server) CreateEntries(c *gin.Context) {
 	)
 	// finally return everything!!
 	c.JSON(200, RetrieveEntryResponse{errors, entries})
+}
+
+// Get a specified number of random entries
+var MAX_N = 25
+
+func (s *Server) RandomEntries(c *gin.Context) {
+	n, err := strconv.Atoi(c.DefaultQuery("n", "1"))
+	if err != nil {
+		c.JSON(400, Error{400, "Invalid int"})
+		return
+	}
+	if n > 25 || n < 1 {
+		c.JSON(400, Error{400, "'n' must be positive and greater than " + strconv.Itoa(MAX_N)})
+		return
+	}
+	entries, err := readRandomEntries(s.V2k, n)
+	if err != nil {
+		c.JSON(500, Error{500, err.Error()})
+		return
+	}
+	// success
+	c.JSON(200, entries)
 }

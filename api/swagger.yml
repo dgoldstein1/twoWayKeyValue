@@ -9,6 +9,37 @@ servers:
     url: https://virtserver.swaggerhub.com/dgoldstein1/twoWayKeyValue/0.1.0
 
 paths:
+  /random:
+    get:
+      summary: returns random entries
+      parameters:
+        - in: query
+          name: n
+          schema:
+            type: number
+          required: false
+          description: number of random entries to return, defaults to 1
+
+      responses:
+        '200':
+          description: Random entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                    $ref: '#/components/schemas/KeyValueEntry'
+
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+
+
+
   /entries:
     post:
       summary: Creates entries if they don't already exist.
