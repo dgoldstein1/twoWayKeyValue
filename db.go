@@ -170,13 +170,14 @@ func readRandomEntries(
 	// find closest N values to that v
 	maxRetries := n * 5
 	tries := 0
-	for prefix := rand.Intn(INT_MAX); len(entries) < n; prefix = rand.Intn(INT_MAX) {
-		// perform n separate view transactions
-		v2k.View(func(txn *badger.Txn) error {
-			opts := badger.DefaultIteratorOptions
-			opts.PrefetchSize = n
-			it := txn.NewIterator(opts)
-			defer it.Close()
+	// open up DB read
+	err = v2k.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = n
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		// loop through different random numbers and seek at that n
+		for prefix := rand.Intn(INT_MAX); len(entries) < n; prefix = rand.Intn(INT_MAX) {
 			// start iterator at random N
 			it.Seek([]byte(strconv.Itoa(prefix)))
 			if it.Valid() {
@@ -193,11 +194,13 @@ func readRandomEntries(
 			}
 			// could not find key, incr tries
 			tries++
-			return nil
-		})
-		if tries > maxRetries {
-			return []Entry{}, fmt.Errorf("max collisions reached finding random entries")
+			// return error if too many retries
+			if tries > maxRetries {
+				return fmt.Errorf("max collisions reached finding random entries")
+			}
 		}
-	}
-	return entries, nil
+		// exit db.view
+		return nil
+	})
+	return entries, err
 }
