@@ -105,7 +105,7 @@ func TestRandomEntries(t *testing.T) {
 
 			},
 			ExpectedCode:          500,
-			ExpectedError:         "max retries reached",
+			ExpectedError:         "max collisions reached finding random entries",
 			ExpectedEntriesLength: 1,
 			Method:                "GET",
 		},

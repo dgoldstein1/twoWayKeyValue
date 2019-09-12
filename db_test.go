@@ -384,7 +384,7 @@ func TestReadRandomEntries(t *testing.T) {
 			Name:                  "returns error when there are not enough entries in DB",
 			n:                     10,
 			ExpectedEntriesLength: 0,
-			ExpectedError:         "max retries reached",
+			ExpectedError:         "max collisions reached finding random entries",
 			Setup:                 func() {},
 			TearDown:              func() {},
 		},

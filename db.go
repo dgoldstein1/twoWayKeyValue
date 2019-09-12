@@ -196,7 +196,7 @@ func readRandomEntries(
 			return nil
 		})
 		if tries > maxRetries {
-			return []Entry{}, fmt.Errorf("max retries reached")
+			return []Entry{}, fmt.Errorf("max collisions reached finding random entries")
 		}
 	}
 	return entries, nil
