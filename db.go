@@ -167,7 +167,7 @@ func readRandomEntries(
 ) {
 	// get random number within range of max values and then
 	// find closest N values to that v
-	for seek := rand.Intn(INT_MAX); len(entries) <= n || seek < 0; seek /= 10 {
+	for seek := rand.Intn(INT_MAX); len(entries) < n || seek < 0; seek /= 10 {
 		// perform n separate view transactions
 		err := v2k.View(func(txn *badger.Txn) error {
 			opts := badger.DefaultIteratorOptions
