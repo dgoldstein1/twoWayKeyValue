@@ -163,13 +163,17 @@ func readRandomEntries(
 	n int,
 ) (
 	entries []Entry,
-	errs []error,
+	err error,
 ) {
+	// assert that there enough entries in DB
+	if v2k.Tables(true)[0].KeyCount < uint64(n) {
+		return entries, fmt.Errorf("Too few entries in db")
+	}
 	// get random number within range of max values and then
 	// find closest N values to that v
 	for seek := rand.Intn(INT_MAX); len(entries) < n || seek < 0; seek /= 10 {
 		// perform n separate view transactions
-		err := v2k.View(func(txn *badger.Txn) error {
+		v2k.View(func(txn *badger.Txn) error {
 			opts := badger.DefaultIteratorOptions
 			opts.PrefetchSize = n
 			it := txn.NewIterator(opts)
@@ -187,15 +191,8 @@ func readRandomEntries(
 				})
 				return nil
 			}
-			// could not find int in seek range, divide by ten
-			if seek == 0 {
-				seek = -1
-			}
 			return nil
 		})
-		if err != nil {
-			errs = append(errs, err)
-		}
 	}
-	return entries, errs
+	return entries, nil
 }
