@@ -27,6 +27,73 @@ func TestRemoveDupliactes(t *testing.T) {
 	})
 }
 
+func TestRandomEntries(t *testing.T) {
+
+	loadPath := "/tmp/twowaykv/randomEntries/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	require.NoError(t, err)
+	defer os.RemoveAll(loadPath)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	router, _ := SetupRouter("./api/*")
+
+	type Test struct {
+		Name                  string
+		Path                  string
+		ExpectedCode          int
+		ExpectedEntriesLength int
+		ExpectedErrors        []string
+		Setup                 func()
+		Method                string
+	}
+	// used for testing valid value lookup
+	validTestValue := ""
+
+	testTable := []Test{
+		Test{
+			Name:                  "gets random entry",
+			Path:                  "/random",
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			ExpectedErrors:        []string{},
+			Method:                "GET",
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer([]byte("")))
+			req.Header.Add("Content-Type", "application/json")
+			router.ServeHTTP(w, req)
+			assert.Equal(t, test.ExpectedCode, w.Code)
+
+			// fmt.Println(" ****> POST: " + string(test.Body))
+			body := []byte(w.Body.String())
+			if test.ExpectedCode == 200 {
+				resp := RetrieveEntryResponse{}
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedEntriesLength, len(resp.Entries))
+				assert.Equal(t, test.ExpectedErrors, resp.Errors)
+				// set createdEntry on success
+				if len(resp.Entries) > 0 {
+					assert.NotEqual(t, 0, resp.Entries[0].Value)
+					validTestValue = strconv.Itoa(resp.Entries[0].Value)
+					assert.NotEqual(t, "0", validTestValue)
+				}
+			} else {
+				resp := Error{}
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedErrors[0], resp.Error)
+				assert.Equal(t, test.ExpectedCode, resp.Code)
+			}
+		})
+
+	}
+
+}
+
 func TestCreateEntriesEntry(t *testing.T) {
 	loadPath := "/tmp/twowaykv/retrieveEntry/" + strconv.Itoa(rand.Intn(INT_MAX))
 	err := os.MkdirAll(loadPath, os.ModePerm)
