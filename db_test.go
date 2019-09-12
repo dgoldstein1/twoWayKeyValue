@@ -295,3 +295,47 @@ func TestwriteEntryToDB(t *testing.T) {
 	k2vWB.Flush()
 
 }
+
+func TestReadRandomEntries(t *testing.T) {
+	// setup, create DBs
+	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
+	k2v, v2k, err := ConnectToDb()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Nil(t, err)
+	assert.NotNil(t, k2v, v2k)
+	defer k2v.Close()
+	defer v2k.Close()
+
+	type Test struct {
+		Name                  string
+		n                     int
+		ExpectedEntriesLength int
+		ExpectedErrorsLength  int
+		Setup                 func()
+	}
+
+	testTable := []Test{
+		Test{
+			Name:                  "positive test",
+			n:                     1,
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					return txn.Set([]byte("TEST-KEY"), []byte("TEST-VALUE"))
+				})
+				require.Nil(t, err)
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			entries, errors := readRandomEntries(k2v, test.n)
+			assert.Equal(t, test.ExpectedEntriesLength, len(entries))
+			assert.Equal(t, test.ExpectedErrorsLength, len(errors))
+		})
+	}
+}

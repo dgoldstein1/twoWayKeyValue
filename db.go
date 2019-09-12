@@ -156,3 +156,14 @@ func writeEntryToDB(
 	}
 	return e, err
 }
+
+// reads a number of random entries from DB
+func readRandomEntries(
+	k2v *badger.DB,
+	n int,
+) (
+	entries []Entry,
+	errors []error,
+) {
+	return entries, errors
+}
