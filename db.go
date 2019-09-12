@@ -159,11 +159,12 @@ func writeEntryToDB(
 
 // reads a number of random entries from DB
 func readRandomEntries(
-	k2v *badger.DB,
+	v2k *badger.DB,
 	n int,
 ) (
 	entries []Entry,
 	errors []error,
 ) {
+
 	return entries, errors
 }

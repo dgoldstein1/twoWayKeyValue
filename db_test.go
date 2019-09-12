@@ -323,8 +323,8 @@ func TestReadRandomEntries(t *testing.T) {
 			ExpectedEntriesLength: 1,
 			ExpectedErrorsLength:  0,
 			Setup: func() {
-				err := k2v.Update(func(txn *badger.Txn) error {
-					return txn.Set([]byte("TEST-KEY"), []byte("TEST-VALUE"))
+				err := v2k.Update(func(txn *badger.Txn) error {
+					return txn.Set([]byte(strconv.Itoa(1)), []byte("TEST-KEY"))
 				})
 				require.Nil(t, err)
 			},
@@ -336,9 +336,9 @@ func TestReadRandomEntries(t *testing.T) {
 			ExpectedEntriesLength: 6,
 			ExpectedErrorsLength:  0,
 			Setup: func() {
-				err := k2v.Update(func(txn *badger.Txn) error {
+				err := v2k.Update(func(txn *badger.Txn) error {
 					for i := 0; i < 5; i++ {
-						if e := txn.Set([]byte("TEST-KEY"), []byte("TEST-VALUE")); e != nil {
+						if e := txn.Set([]byte(strconv.Itoa(i+2)), []byte("TEST-KEY")); e != nil {
 							return e
 						}
 					}
@@ -352,7 +352,7 @@ func TestReadRandomEntries(t *testing.T) {
 	for _, test := range testTable {
 		t.Run(test.Name, func(t *testing.T) {
 			test.Setup()
-			entries, errors := readRandomEntries(k2v, test.n)
+			entries, errors := readRandomEntries(v2k, test.n)
 			assert.Equal(t, test.ExpectedEntriesLength, len(entries))
 			assert.Equal(t, test.ExpectedErrorsLength, len(errors))
 		})
