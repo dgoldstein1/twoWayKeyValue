@@ -165,17 +165,16 @@ func readRandomEntries(
 	entries []Entry,
 	err error,
 ) {
-	m := make(map[int]bool)
-	// get random number within range of max values and then
-	// find closest N values to that v
-	maxRetries := n * 5
-	tries := 0
 	// open up DB read
 	err = v2k.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = n
 		it := txn.NewIterator(opts)
 		defer it.Close()
+		// keep track of tries
+		m := make(map[int]bool)
+		maxRetries := n * 5
+		tries := 0
 		// loop through different random numbers and seek at that n
 		for prefix := rand.Intn(INT_MAX); len(entries) < n; prefix = rand.Intn(INT_MAX) {
 			// start iterator at random N
