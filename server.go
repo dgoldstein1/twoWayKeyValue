@@ -78,8 +78,8 @@ func (s *Server) RandomEntries(c *gin.Context) {
 		c.JSON(400, Error{400, "Invalid int"})
 		return
 	}
-	if n > 25 {
-		c.JSON(400, Error{400, "'n' cannot be greater than " + string(MAX_N)})
+	if n > 25 || n < 1 {
+		c.JSON(400, Error{400, "'n' must be positive and greater than " + string(MAX_N)})
 		return
 	}
 	entries, err := readRandomEntries(s.V2k, n)

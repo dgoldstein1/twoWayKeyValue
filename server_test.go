@@ -61,13 +61,13 @@ func TestRandomEntries(t *testing.T) {
 	validTestValue := ""
 
 	testTable := []Test{
-		// Test{
-		// 	Name:                  "gets random entry",
-		// 	Path:                  "/random",
-		// 	ExpectedCode:          200,
-		// 	ExpectedEntriesLength: 1,
-		// 	Method:                "GET",
-		// },
+		Test{
+			Name:                  "gets random entry",
+			Path:                  "/random",
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			Method:                "GET",
+		},
 	}
 
 	for _, test := range testTable {
