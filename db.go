@@ -165,13 +165,12 @@ func readRandomEntries(
 	entries []Entry,
 	err error,
 ) {
-	// assert that there enough entries in DB
-	if v2k.Tables(true)[0].KeyCount < uint64(n) {
-		return entries, fmt.Errorf("Too few entries in db")
-	}
+	m := make(map[int]bool)
 	// get random number within range of max values and then
 	// find closest N values to that v
-	for seek := rand.Intn(INT_MAX); len(entries) < n || seek < 0; seek /= 10 {
+	maxRetries := n * 5
+	tries := 0
+	for prefix := rand.Intn(INT_MAX); len(entries) < n; prefix = rand.Intn(INT_MAX) {
 		// perform n separate view transactions
 		v2k.View(func(txn *badger.Txn) error {
 			opts := badger.DefaultIteratorOptions
@@ -179,20 +178,27 @@ func readRandomEntries(
 			it := txn.NewIterator(opts)
 			defer it.Close()
 			// start iterator at random N
-			it.Seek([]byte(strconv.Itoa(seek)))
-			// find N items in a row
+			it.Seek([]byte(strconv.Itoa(prefix)))
 			if it.Valid() {
 				k, _ := strconv.Atoi(string(it.Item().Key()))
-				// read value
-				it.Item().Value(func(v []byte) error {
-					// add to entries
-					entries = append(entries, Entry{string(v), k})
-					return nil
-				})
-				return nil
+				// prefix found, make sure id is't 0
+				if k != 0 && !m[k] {
+					fmt.Printf("found key %v\n", k)
+					it.Item().Value(func(v []byte) error {
+						// add to entries
+						entries = append(entries, Entry{string(v), k})
+						m[k] = true
+						return nil
+					})
+				}
 			}
+			// could not find key, incr tries
+			tries++
 			return nil
 		})
+		if tries > maxRetries {
+			return []Entry{}, fmt.Errorf("max retries reached")
+		}
 	}
 	return entries, nil
 }

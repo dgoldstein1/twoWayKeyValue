@@ -326,13 +326,13 @@ func TestReadRandomEntries(t *testing.T) {
 			ExpectedError:         "",
 			Setup: func() {
 				err := v2k.Update(func(txn *badger.Txn) error {
-					return txn.Set([]byte(strconv.Itoa(1)), []byte("TEST-KEY"))
+					return txn.Set([]byte(strconv.Itoa(34)), []byte("TEST-KEY"))
 				})
 				require.Nil(t, err)
 			},
 			TearDown: func() {
 				err := v2k.Update(func(txn *badger.Txn) error {
-					return txn.Delete([]byte(strconv.Itoa(1)))
+					return txn.Delete([]byte(strconv.Itoa(34)))
 				})
 				require.Nil(t, err)
 			},
@@ -400,9 +400,9 @@ func TestReadRandomEntries(t *testing.T) {
 		},
 		Test{
 			Name:                  "returns error when there are not enough entries in DB",
-			n:                     9872,
+			n:                     10,
 			ExpectedEntriesLength: 0,
-			ExpectedError:         "Too few entries in db",
+			ExpectedError:         "max retries reached",
 			Setup:                 func() {},
 			TearDown:              func() {},
 		},
