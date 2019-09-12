@@ -59,19 +59,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /export:
-    get:
-      summary: Streams underlying badgerDB files in a ZIP archive.
-      responses:
-        '200':
-          description: File stream of graph as a [Badger DB file](https://github.com/dgraph-io/badger).
-        '500':
-          description: An error message.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
 components:
   schemas:
 

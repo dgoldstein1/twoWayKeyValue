@@ -31,7 +31,6 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	p.Use(router)
 	// core endpoints
 	router.POST("/entries", s.CreateEntries)
-	router.GET("/export", s.ExportDB)
 	// return server
 	return router, &s
 }
@@ -66,15 +65,4 @@ func (s *Server) CreateEntries(c *gin.Context) {
 	)
 	// finally return everything!!
 	c.JSON(200, RetrieveEntryResponse{errors, entries})
-}
-
-// stream zipped file over browser
-func (s *Server) ExportDB(c *gin.Context) {
-	fileName, err := ZipDb()
-	if err != nil {
-		logErr("Could not create zip %v", err)
-		c.JSON(500, Error{500, err.Error()})
-		return
-	}
-	c.FileAttachment(fileName, "twowaykv_export.zip")
 }

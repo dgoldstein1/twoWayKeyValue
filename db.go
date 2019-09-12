@@ -1,12 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	badger "github.com/dgraph-io/badger"
 	"math/rand"
 	"os"
-	"os/exec"
 	"strconv"
 )
 
@@ -157,24 +155,4 @@ func writeEntryToDB(
 		logErr("Error setting v2k %+v: %v", e, err)
 	}
 	return e, err
-}
-
-// creates zip file of
-func ZipDb() (fileName string, err error) {
-	dir := os.Getenv("GRAPH_DB_STORE_DIR")
-	fileName = dir + "/twowaykv_export.zip"
-	// run zip command in bash
-	logMsg("loading %s", fileName)
-	out, err := exec.Command(
-		"zip",
-		"-r",
-		fileName,
-		dir+K2V_PATH,
-		dir+V2K_PATH,
-	).Output()
-	logMsg("Running %s", string(out))
-	if err != nil {
-		err = errors.New(string(out))
-	}
-	return fileName, err
 }
