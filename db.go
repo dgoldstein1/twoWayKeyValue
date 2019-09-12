@@ -163,42 +163,39 @@ func readRandomEntries(
 	n int,
 ) (
 	entries []Entry,
-	errors []error,
+	errs []error,
 ) {
-	// get random number within range of max values
-	v := rand.Intn(INT_MAX)
+	// get random number within range of max values and then
 	// find closest N values to that v
-	v2k.View(func(txn *badger.Txn) error {
-		opts := badger.DefaultIteratorOptions
-		opts.PrefetchSize = n
-		it := txn.NewIterator(opts)
-		defer it.Close()
-		// start iterator at random N
-		it.Seek([]byte(strconv.Itoa(v)))
-		// find N items in a row
-		for i := 0; i < n && it.Valid(); it.Next() {
-			item := it.Item()
-			// key should be an int value
-			val, err := strconv.Atoi(string(item.Key()))
-			if err != nil {
-				logErr("Could not convert %v to int: %v", it.Item(), err)
-				errors = append(errors, err)
-			} else {
-				// get keys and values from item
-				item.Value(func(v []byte) error {
-					entries = append(entries, Entry{
-						Key:   string(v),
-						Value: val,
-					})
+	for seek := rand.Intn(INT_MAX); len(entries) <= n || seek < 0; seek /= 10 {
+		// perform n separate view transactions
+		err := v2k.View(func(txn *badger.Txn) error {
+			opts := badger.DefaultIteratorOptions
+			opts.PrefetchSize = n
+			it := txn.NewIterator(opts)
+			defer it.Close()
+			// start iterator at random N
+			it.Seek([]byte(strconv.Itoa(seek)))
+			// find N items in a row
+			if it.Valid() {
+				k, _ := strconv.Atoi(string(it.Item().Key()))
+				// read value
+				it.Item().Value(func(v []byte) error {
+					// add to entries
+					entries = append(entries, Entry{string(v), k})
 					return nil
 				})
-
+				return nil
 			}
-			i++
+			// could not find int in seek range, divide by ten
+			if seek == 0 {
+				seek = -1
+			}
+			return nil
+		})
+		if err != nil {
+			errs = append(errs, err)
 		}
-
-		return nil
-	})
-
-	return entries, errors
+	}
+	return entries, errs
 }
