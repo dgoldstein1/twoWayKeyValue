@@ -223,3 +223,7 @@ func GetEntriesFromKeys(k2v *badger.DB, keys []string) (entries []Entry, errors 
 	})
 	return entries, errors
 }
+
+func GetEntriesFromValues(v2k *badger.DB, values []int) (entries []Entry, errors []string) {
+	return entries, errors
+}

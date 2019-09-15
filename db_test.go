@@ -500,3 +500,67 @@ func TestGetEntriesFromKeys(t *testing.T) {
 	}
 
 }
+
+func TestGetEntriesFromValues(t *testing.T) {
+
+	// setup, create DBs
+	loadPath := "/tmp/twowaykv/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	defer os.RemoveAll(loadPath)
+	require.NoError(t, err)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	k2v, v2k, err := ConnectToDb()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Nil(t, err)
+	assert.NotNil(t, k2v, v2k)
+	defer k2v.Close()
+	defer v2k.Close()
+
+	type Test struct {
+		Name                  string
+		Values                []int
+		ExpectedEntriesLength int
+		ExpectedErrorsLength  int
+		Setup                 func()
+		TearDown              func()
+	}
+
+	testTable := []Test{
+		Test{
+			Name:                  "retrieves entries given values",
+			Values:                []int{},
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("111"), []byte("testKey")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		test.Setup()
+		entries, errors := GetEntriesFromValues(k2v, test.Values)
+		assert.Equal(t, test.ExpectedEntriesLength, len(entries))
+		assert.Equal(t, test.ExpectedErrorsLength, len(errors))
+		test.TearDown()
+	}
+
+}
