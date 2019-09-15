@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	badger "github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -297,8 +298,12 @@ func TestwriteEntryToDB(t *testing.T) {
 }
 
 func TestReadRandomEntries(t *testing.T) {
+	loadPath := "/tmp/twowaykv/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	defer os.RemoveAll(loadPath)
+	require.NoError(t, err)
 	// setup, create DBs
-	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
 	k2v, v2k, err := ConnectToDb()
 	if err != nil {
 		t.Fatal(err)
@@ -350,36 +355,36 @@ func TestReadRandomEntries(t *testing.T) {
 				require.Nil(t, err)
 			},
 		},
-		Test{
-
-			Name:                  "get 5 random entries when there are 5 in db",
-			n:                     5,
-			ExpectedEntriesLength: 5,
-			ExpectedError:         "",
-			Setup: func() {
-				err := v2k.Update(func(txn *badger.Txn) error {
-					for i := 0; i < 5; i++ {
-						if e := txn.Set([]byte(strconv.Itoa(i+2)), []byte("TEST-KEY")); e != nil {
-							return e
-						}
-					}
-					return nil
-				})
-				require.Nil(t, err)
-			},
-			TearDown: func() {
-
-				err := v2k.Update(func(txn *badger.Txn) error {
-					for i := 0; i < 5; i++ {
-						if e := txn.Delete([]byte(strconv.Itoa(i + 2))); e != nil {
-							return e
-						}
-					}
-					return nil
-				})
-				require.Nil(t, err)
-			},
-		},
+		// Test{
+		//
+		// 	Name:                  "get 5 random entries when there are 5 in db",
+		// 	n:                     5,
+		// 	ExpectedEntriesLength: 5,
+		// 	ExpectedError:         "",
+		// 	Setup: func() {
+		// 		err := v2k.Update(func(txn *badger.Txn) error {
+		// 			for i := 0; i < 5; i++ {
+		// 				if e := txn.Set([]byte(strconv.Itoa(i+2)), []byte("TEST-KEY")); e != nil {
+		// 					return e
+		// 				}
+		// 			}
+		// 			return nil
+		// 		})
+		// 		require.Nil(t, err)
+		// 	},
+		// 	TearDown: func() {
+		//
+		// 		err := v2k.Update(func(txn *badger.Txn) error {
+		// 			for i := 0; i < 5; i++ {
+		// 				if e := txn.Delete([]byte(strconv.Itoa(i + 2))); e != nil {
+		// 					return e
+		// 				}
+		// 			}
+		// 			return nil
+		// 		})
+		// 		require.Nil(t, err)
+		// 	},
+		// },
 		Test{
 			Name:                  "returns error when there are not enough entries in DB",
 			n:                     10,
@@ -409,4 +414,187 @@ func TestReadRandomEntries(t *testing.T) {
 			test.TearDown()
 		})
 	}
+}
+
+func TestGetEntriesFromKeys(t *testing.T) {
+	// setup, create DBs
+	loadPath := "/tmp/twowaykv/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	defer os.RemoveAll(loadPath)
+	require.NoError(t, err)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	k2v, v2k, err := ConnectToDb()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Nil(t, err)
+	assert.NotNil(t, k2v, v2k)
+	defer k2v.Close()
+	defer v2k.Close()
+
+	type Test struct {
+		Name                  string
+		Keys                  []string
+		ExpectedEntriesLength int
+		ExpectedErrorsLength  int
+		Setup                 func()
+		TearDown              func()
+	}
+
+	testTable := []Test{
+		Test{
+			Name:                  "retrieves given keys",
+			Keys:                  []string{"testKEY"},
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("testKEY"), []byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("testKEY")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+		},
+		Test{
+			Name:                  "throws error for nonexistient key",
+			Keys:                  []string{"testKEY1", "testKEY2"},
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  1,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("testKEY1"), []byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("testKEY1")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		test.Setup()
+		entries, errors := GetEntriesFromKeys(k2v, test.Keys)
+		assert.Equal(t, test.ExpectedEntriesLength, len(entries))
+		assert.Equal(t, test.ExpectedErrorsLength, len(errors))
+		test.TearDown()
+	}
+
+}
+
+func TestGetEntriesFromValues(t *testing.T) {
+	// setup, create DBs
+	loadPath := "/tmp/twowaykv/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	defer os.RemoveAll(loadPath)
+	require.NoError(t, err)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	k2v, v2k, err := ConnectToDb()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Nil(t, err)
+	assert.NotNil(t, k2v, v2k)
+	defer k2v.Close()
+	defer v2k.Close()
+
+	type Test struct {
+		Name                  string
+		Values                []int
+		ExpectedEntriesLength int
+		ExpectedErrorsLength  int
+		Setup                 func()
+		TearDown              func()
+	}
+
+	testTable := []Test{
+		Test{
+			Name:                  "retrieves entries given values",
+			Values:                []int{111},
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("111"), []byte("testKey")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+		},
+		Test{
+
+			Name:                  "throws error if value doesnt exist",
+			Values:                []int{112, 113},
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  1,
+			Setup: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("112"), []byte("testKey")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("112")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		test.Setup()
+		entries, errors := GetEntriesFromValues(v2k, test.Values)
+		if test.ExpectedErrorsLength != len(errors) && len(errors) != 0 {
+			fmt.Println("------------------------------------------")
+			fmt.Println(errors)
+		}
+		assert.Equal(t, test.ExpectedErrorsLength, len(errors))
+		assert.Equal(t, test.ExpectedEntriesLength, len(entries))
+		test.TearDown()
+	}
+
 }

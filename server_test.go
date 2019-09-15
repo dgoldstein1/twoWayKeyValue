@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	badger "github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -247,6 +248,177 @@ func TestCreateEntriesEntry(t *testing.T) {
 				assert.Equal(t, test.ExpectedErrors[0], resp.Error)
 				assert.Equal(t, test.ExpectedCode, resp.Code)
 			}
+		})
+
+	}
+}
+
+// tests both "/entriesFromKeys" and "/entriesFromValues"
+func TestGetEntries(t *testing.T) {
+	loadPath := "/tmp/twowaykv/api/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	require.NoError(t, err)
+	defer os.RemoveAll(loadPath)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	router, s := SetupRouter("./api/*")
+
+	type Test struct {
+		Name                  string
+		Path                  string
+		Body                  []byte
+		ExpectedCode          int
+		ExpectedEntriesLength int
+		ExpectedErrorsLength  int
+		Setup                 func()
+		TearDown              func()
+		Method                string
+	}
+	testTable := []Test{
+		Test{
+			Name:                  "gets correct entries from keys",
+			Path:                  "/entriesFromKeys",
+			Body:                  []byte(`["testKey"]`),
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Method:                "POST",
+			Setup: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("testKey"), []byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+			TearDown: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("testKey")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
+		Test{
+			Name:                  "returns error for bad json",
+			Path:                  "/entriesFromKeys",
+			Body:                  []byte(`["testKeyad"'f']la;d;fla;df`),
+			ExpectedCode:          400,
+			ExpectedEntriesLength: 0,
+			ExpectedErrorsLength:  1,
+			Method:                "POST",
+			Setup: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("testKey"), []byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+			TearDown: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("testKey")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
+		Test{
+
+			Name:                  "gets correct entries from values",
+			Path:                  "/entriesFromValues",
+			Body:                  []byte(`[115]`),
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Method:                "POST",
+			Setup: func() {
+				err := s.V2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("115"), []byte("testKey115")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+			TearDown: func() {
+				err := s.V2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("115")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
+		Test{
+
+			Name:                  "returns error for bad json",
+			Path:                  "/entriesFromValues",
+			Body:                  []byte(`["1113"]`),
+			ExpectedCode:          400,
+			ExpectedEntriesLength: 0,
+			ExpectedErrorsLength:  1,
+			Method:                "POST",
+			Setup: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("testKey"), []byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+			TearDown: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("testKey")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Setup()
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer(test.Body))
+			req.Header.Add("Content-Type", "application/json")
+			router.ServeHTTP(w, req)
+			assert.Equal(t, test.ExpectedCode, w.Code)
+
+			// fmt.Println(" ****> POST: " + string(test.Body))
+			body := []byte(w.Body.String())
+			if test.ExpectedCode == 200 {
+				resp := RetrieveEntryResponse{}
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedEntriesLength, len(resp.Entries))
+				if test.ExpectedErrorsLength != len(resp.Errors) && len(resp.Errors) != 0 {
+					fmt.Println("------------------------------------------")
+					fmt.Println(resp.Errors)
+				}
+				assert.Equal(t, test.ExpectedErrorsLength, len(resp.Errors))
+			} else {
+				resp := Error{}
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedCode, resp.Code)
+				assert.NotEqual(t, "", resp.Error)
+			}
+			test.TearDown()
 		})
 
 	}

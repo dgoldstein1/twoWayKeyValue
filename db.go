@@ -203,3 +203,42 @@ func readRandomEntries(
 	})
 	return entries, err
 }
+
+// retrieves entries from k2v DB
+func GetEntriesFromKeys(k2v *badger.DB, keys []string) (entries []Entry, errors []string) {
+	k2v.View(func(txn *badger.Txn) error {
+		for _, k := range keys {
+			item, err := txn.Get([]byte(k))
+			if err != nil {
+				errors = append(errors, fmt.Sprintf("Could not retrieve entry from key %s: %s", k, err.Error()))
+			} else {
+				// add to response
+				key := string(item.KeyCopy(nil))
+				v, _ := item.ValueCopy(nil)
+				val, _ := strconv.Atoi(string(v))
+				entries = append(entries, Entry{key, val})
+			}
+		}
+		return nil
+	})
+	return entries, errors
+}
+
+func GetEntriesFromValues(v2k *badger.DB, values []int) (entries []Entry, errors []string) {
+	v2k.View(func(txn *badger.Txn) error {
+		for _, v := range values {
+			item, err := txn.Get([]byte(strconv.Itoa(v)))
+			if err != nil {
+				errors = append(errors, fmt.Sprintf("Could not retrieve entry from value %d: %s", v, err.Error()))
+			} else {
+				// add to response
+				v := string(item.KeyCopy(nil))
+				val, _ := strconv.Atoi(v)
+				key, _ := item.ValueCopy(nil)
+				entries = append(entries, Entry{string(key), val})
+			}
+		}
+		return nil
+	})
+	return entries, errors
+}
