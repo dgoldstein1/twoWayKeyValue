@@ -557,6 +557,32 @@ func TestGetEntriesFromValues(t *testing.T) {
 
 			},
 		},
+		Test{
+
+			Name:                  "throws error if value doesnt exist",
+			Values:                []int{112, 113},
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  1,
+			Setup: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("112"), []byte("testKey")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := v2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("112")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+		},
 	}
 
 	for _, test := range testTable {
