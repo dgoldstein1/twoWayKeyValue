@@ -9,6 +9,64 @@ servers:
     url: https://virtserver.swaggerhub.com/dgoldstein1/twoWayKeyValue/0.1.0
 
 paths:
+  /entriesFromKeys:
+    post:
+      summary: retrieves entries given keys
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+
+      responses:
+        '200':
+          description: Keys => Values response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                    $ref: '#/components/schemas/KeyValueEntry'
+
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /entriesFromValues:
+    post:
+      summary: retrieves entries given values
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: number
+
+      responses:
+        '200':
+          description: Keys => Values response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                    $ref: '#/components/schemas/KeyValueEntry'
+
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /random:
     get:
       summary: returns random entries
@@ -92,7 +150,6 @@ paths:
 
 components:
   schemas:
-
     KeyValueEntryResponse:
       type: object
       properties:
