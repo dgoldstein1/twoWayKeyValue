@@ -203,3 +203,7 @@ func readRandomEntries(
 	})
 	return entries, err
 }
+
+func GetEntriesFromKeys(k2v *badger.DB, keys []string) (entries []Entry, errors []string) {
+	return entries, errors
+}
