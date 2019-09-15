@@ -105,5 +105,11 @@ func (s *Server) GetEntriesFromKeys(c *gin.Context) {
 }
 
 func (s *Server) GetEntriesFromValues(c *gin.Context) {
-
+	values := []int{}
+	if err := c.BindJSON(&values); err != nil {
+		c.JSON(400, Error{400, err.Error()})
+		return
+	}
+	entries, errs := GetEntriesFromValues(s.V2k, values)
+	c.JSON(200, RetrieveEntryResponse{errs, entries})
 }

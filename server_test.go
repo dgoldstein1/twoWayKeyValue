@@ -303,6 +303,34 @@ func TestGetEntries(t *testing.T) {
 			},
 		},
 		Test{
+			Name:                  "returns error for bad json",
+			Path:                  "/entriesFromKeys",
+			Body:                  []byte(`["testKeyad"'f']la;d;fla;df`),
+			ExpectedCode:          400,
+			ExpectedEntriesLength: 0,
+			ExpectedErrorsLength:  1,
+			Method:                "POST",
+			Setup: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("testKey"), []byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+			TearDown: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("testKey")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
+		Test{
 
 			Name:                  "gets correct entries from values",
 			Path:                  "/entriesFromValues",
@@ -324,6 +352,35 @@ func TestGetEntries(t *testing.T) {
 			TearDown: func() {
 				err := s.V2k.Update(func(txn *badger.Txn) error {
 					if e := txn.Delete([]byte("115")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
+		Test{
+
+			Name:                  "returns error for bad json",
+			Path:                  "/entriesFromValues",
+			Body:                  []byte(`["1113"]`),
+			ExpectedCode:          400,
+			ExpectedEntriesLength: 0,
+			ExpectedErrorsLength:  1,
+			Method:                "POST",
+			Setup: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("testKey"), []byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+			TearDown: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("testKey")); e != nil {
 						return e
 					}
 					return nil
@@ -359,6 +416,7 @@ func TestGetEntries(t *testing.T) {
 				err := json.Unmarshal(body, &resp)
 				assert.Nil(t, err)
 				assert.Equal(t, test.ExpectedCode, resp.Code)
+				assert.NotEqual(t, "", resp.Error)
 			}
 			test.TearDown()
 		})
