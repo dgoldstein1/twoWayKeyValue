@@ -27,11 +27,13 @@ export GRAPH_DB_STORE_PORT="5001" # port served on
 export GRAPH_DOCS_DIR="./api/*" # location of docs (warning: this entire dir is served up to the browser)
 ./twowaykv serve
 # make example request
-curl -X POST -H "Content-Type: application/json"  -d '["test1", "test3", "test5", "test6", "test6"]' http://localhost:5001/entries
+curl -X POST -H "Content-Type: application/json"  -d '["test1", "test3", "test5", "test6", "test6"]' http://localhost:5001/entries | jq
+# retrieve the entries we just created
+curl -X POST -H "Content-Type: application/json"  -d '["test1", "test3", "test5", "test6", "test6"]' http://localhost:5001/entriesFromKeys | jq
 ...
 # get two random entries
-curl localhost:5001/random?n=2
-[{"key":"test3","value":653544572},{"key":"test1","value":990563163}]
+curl localhost:5001/random?n= | jq
+[{"key":"test3","value":653544572}]
 ```
 
 
