@@ -251,3 +251,73 @@ func TestCreateEntriesEntry(t *testing.T) {
 
 	}
 }
+
+// tests both "/entriesFromKeys" and "/entriesFromValues"
+func TestGetEntries(t *testing.T) {
+	loadPath := "/tmp/twowaykv/api/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	require.NoError(t, err)
+	defer os.RemoveAll(loadPath)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	router, _ := SetupRouter("./api/*")
+
+	type Test struct {
+		Name                  string
+		Path                  string
+		Body                  []byte
+		ExpectedCode          int
+		ExpectedEntriesLength int
+		ExpectedErrorsLength  int
+		Setup                 func()
+		Method                string
+	}
+	// used for testing valid value lookup
+	validTestValue := ""
+
+	testTable := []Test{
+		Test{
+			Name:                  "gets correct entries from keys",
+			Path:                  "/entriesFromKeys",
+			Body:                  []byte(`["testKey"]`),
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Method:                "POST",
+			Setup: func() {
+
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer(test.Body))
+			req.Header.Add("Content-Type", "application/json")
+			router.ServeHTTP(w, req)
+			assert.Equal(t, test.ExpectedCode, w.Code)
+
+			// fmt.Println(" ****> POST: " + string(test.Body))
+			body := []byte(w.Body.String())
+			if test.ExpectedCode == 200 {
+				resp := RetrieveEntryResponse{}
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedEntriesLength, len(resp.Entries))
+				assert.Equal(t, test.ExpectedErrorsLength, len(resp.Errors))
+				// set createdEntry on success
+				if len(resp.Entries) > 0 {
+					assert.NotEqual(t, 0, resp.Entries[0].Value)
+					validTestValue = strconv.Itoa(resp.Entries[0].Value)
+					assert.NotEqual(t, "0", validTestValue)
+				}
+			} else {
+				resp := Error{}
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedCode, resp.Code)
+			}
+		})
+
+	}
+}
