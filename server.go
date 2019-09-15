@@ -32,6 +32,8 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	p.Use(router)
 	// core endpoints
 	router.POST("/entries", s.CreateEntries)
+	router.POST("/entriesFromKeys", s.GetEntriesFromKeys)
+	router.POST("/entriesFromValues", s.GetEntriesFromValues)
 	router.GET("/random", s.RandomEntries)
 	// return server
 	return router, &s
@@ -89,4 +91,18 @@ func (s *Server) RandomEntries(c *gin.Context) {
 	}
 	// success
 	c.JSON(200, entries)
+}
+
+func (s *Server) GetEntriesFromKeys(c *gin.Context) {
+	keys := []string{}
+	if err := c.BindJSON(&keys); err != nil {
+		c.JSON(400, Error{400, err.Error()})
+		return
+	}
+	entries, errs := GetEntriesFromKeys(s.K2v, keys)
+	c.JSON(200, RetrieveEntryResponse{errs, entries})
+}
+
+func (s *Server) GetEntriesFromValues(c *gin.Context) {
+
 }

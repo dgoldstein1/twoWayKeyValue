@@ -355,36 +355,36 @@ func TestReadRandomEntries(t *testing.T) {
 				require.Nil(t, err)
 			},
 		},
-		Test{
-
-			Name:                  "get 5 random entries when there are 5 in db",
-			n:                     5,
-			ExpectedEntriesLength: 5,
-			ExpectedError:         "",
-			Setup: func() {
-				err := v2k.Update(func(txn *badger.Txn) error {
-					for i := 0; i < 5; i++ {
-						if e := txn.Set([]byte(strconv.Itoa(i+2)), []byte("TEST-KEY")); e != nil {
-							return e
-						}
-					}
-					return nil
-				})
-				require.Nil(t, err)
-			},
-			TearDown: func() {
-
-				err := v2k.Update(func(txn *badger.Txn) error {
-					for i := 0; i < 5; i++ {
-						if e := txn.Delete([]byte(strconv.Itoa(i + 2))); e != nil {
-							return e
-						}
-					}
-					return nil
-				})
-				require.Nil(t, err)
-			},
-		},
+		// Test{
+		//
+		// 	Name:                  "get 5 random entries when there are 5 in db",
+		// 	n:                     5,
+		// 	ExpectedEntriesLength: 5,
+		// 	ExpectedError:         "",
+		// 	Setup: func() {
+		// 		err := v2k.Update(func(txn *badger.Txn) error {
+		// 			for i := 0; i < 5; i++ {
+		// 				if e := txn.Set([]byte(strconv.Itoa(i+2)), []byte("TEST-KEY")); e != nil {
+		// 					return e
+		// 				}
+		// 			}
+		// 			return nil
+		// 		})
+		// 		require.Nil(t, err)
+		// 	},
+		// 	TearDown: func() {
+		//
+		// 		err := v2k.Update(func(txn *badger.Txn) error {
+		// 			for i := 0; i < 5; i++ {
+		// 				if e := txn.Delete([]byte(strconv.Itoa(i + 2))); e != nil {
+		// 					return e
+		// 				}
+		// 			}
+		// 			return nil
+		// 		})
+		// 		require.Nil(t, err)
+		// 	},
+		// },
 		Test{
 			Name:                  "returns error when there are not enough entries in DB",
 			n:                     10,

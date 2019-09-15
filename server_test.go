@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	badger "github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -259,7 +260,7 @@ func TestGetEntries(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(loadPath)
 	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
-	router, _ := SetupRouter("./api/*")
+	router, s := SetupRouter("./api/*")
 
 	type Test struct {
 		Name                  string
@@ -269,11 +270,9 @@ func TestGetEntries(t *testing.T) {
 		ExpectedEntriesLength int
 		ExpectedErrorsLength  int
 		Setup                 func()
+		TearDown              func()
 		Method                string
 	}
-	// used for testing valid value lookup
-	validTestValue := ""
-
 	testTable := []Test{
 		Test{
 			Name:                  "gets correct entries from keys",
@@ -284,13 +283,30 @@ func TestGetEntries(t *testing.T) {
 			ExpectedErrorsLength:  0,
 			Method:                "POST",
 			Setup: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("testKey"), []byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
 
+			},
+			TearDown: func() {
+				err := s.K2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("testKey")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
 			},
 		},
 	}
 
 	for _, test := range testTable {
 		t.Run(test.Name, func(t *testing.T) {
+			test.Setup()
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer(test.Body))
 			req.Header.Add("Content-Type", "application/json")
@@ -304,19 +320,18 @@ func TestGetEntries(t *testing.T) {
 				err := json.Unmarshal(body, &resp)
 				assert.Nil(t, err)
 				assert.Equal(t, test.ExpectedEntriesLength, len(resp.Entries))
-				assert.Equal(t, test.ExpectedErrorsLength, len(resp.Errors))
-				// set createdEntry on success
-				if len(resp.Entries) > 0 {
-					assert.NotEqual(t, 0, resp.Entries[0].Value)
-					validTestValue = strconv.Itoa(resp.Entries[0].Value)
-					assert.NotEqual(t, "0", validTestValue)
+				if test.ExpectedErrorsLength != len(resp.Errors) && len(resp.Errors) != 0 {
+					fmt.Println("------------------------------------------")
+					fmt.Println(resp.Errors)
 				}
+				assert.Equal(t, test.ExpectedErrorsLength, len(resp.Errors))
 			} else {
 				resp := Error{}
 				err := json.Unmarshal(body, &resp)
 				assert.Nil(t, err)
 				assert.Equal(t, test.ExpectedCode, resp.Code)
 			}
+			test.TearDown()
 		})
 
 	}
