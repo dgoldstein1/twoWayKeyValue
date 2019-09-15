@@ -302,6 +302,35 @@ func TestGetEntries(t *testing.T) {
 				require.Nil(t, err)
 			},
 		},
+		Test{
+
+			Name:                  "gets correct entries from values",
+			Path:                  "/entriesFromValues",
+			Body:                  []byte(`[115]`),
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Method:                "POST",
+			Setup: func() {
+				err := s.V2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("115"), []byte("testKey115")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+			TearDown: func() {
+				err := s.V2k.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("115")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
 	}
 
 	for _, test := range testTable {

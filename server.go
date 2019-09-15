@@ -99,6 +99,7 @@ func (s *Server) GetEntriesFromKeys(c *gin.Context) {
 		c.JSON(400, Error{400, err.Error()})
 		return
 	}
+	keys = removeDuplicates(keys)
 	entries, errs := GetEntriesFromKeys(s.K2v, keys)
 	c.JSON(200, RetrieveEntryResponse{errs, entries})
 }
