@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	badger "github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -297,8 +298,12 @@ func TestwriteEntryToDB(t *testing.T) {
 }
 
 func TestReadRandomEntries(t *testing.T) {
+	loadPath := "/tmp/twowaykv/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	defer os.RemoveAll(loadPath)
+	require.NoError(t, err)
 	// setup, create DBs
-	os.Setenv("GRAPH_DB_STORE_DIR", testingDir)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
 	k2v, v2k, err := ConnectToDb()
 	if err != nil {
 		t.Fatal(err)
@@ -502,7 +507,6 @@ func TestGetEntriesFromKeys(t *testing.T) {
 }
 
 func TestGetEntriesFromValues(t *testing.T) {
-
 	// setup, create DBs
 	loadPath := "/tmp/twowaykv/" + strconv.Itoa(rand.Intn(INT_MAX))
 	err := os.MkdirAll(loadPath, os.ModePerm)
@@ -530,7 +534,7 @@ func TestGetEntriesFromValues(t *testing.T) {
 	testTable := []Test{
 		Test{
 			Name:                  "retrieves entries given values",
-			Values:                []int{},
+			Values:                []int{111},
 			ExpectedEntriesLength: 1,
 			ExpectedErrorsLength:  0,
 			Setup: func() {
@@ -557,9 +561,13 @@ func TestGetEntriesFromValues(t *testing.T) {
 
 	for _, test := range testTable {
 		test.Setup()
-		entries, errors := GetEntriesFromValues(k2v, test.Values)
-		assert.Equal(t, test.ExpectedEntriesLength, len(entries))
+		entries, errors := GetEntriesFromValues(v2k, test.Values)
+		if test.ExpectedErrorsLength != len(errors) && len(errors) != 0 {
+			fmt.Println("------------------------------------------")
+			fmt.Println(errors)
+		}
 		assert.Equal(t, test.ExpectedErrorsLength, len(errors))
+		assert.Equal(t, test.ExpectedEntriesLength, len(entries))
 		test.TearDown()
 	}
 
