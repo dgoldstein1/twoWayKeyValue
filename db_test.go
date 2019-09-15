@@ -463,6 +463,32 @@ func TestGetEntriesFromKeys(t *testing.T) {
 
 			},
 		},
+		Test{
+			Name:                  "throws error for nonexistient key",
+			Keys:                  []string{"testKEY1", "testKEY2"},
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  1,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("testKEY1"), []byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("testKEY1")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+		},
 	}
 
 	for _, test := range testTable {

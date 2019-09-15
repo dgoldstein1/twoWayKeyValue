@@ -204,6 +204,22 @@ func readRandomEntries(
 	return entries, err
 }
 
+// retrieves entries from k2v DB
 func GetEntriesFromKeys(k2v *badger.DB, keys []string) (entries []Entry, errors []string) {
+	k2v.View(func(txn *badger.Txn) error {
+		for _, k := range keys {
+			item, err := txn.Get([]byte(k))
+			if err != nil {
+				errors = append(errors, err.Error())
+			} else {
+				// add to response
+				key := string(item.KeyCopy(nil))
+				v, _ := item.ValueCopy(nil)
+				val, _ := strconv.Atoi(string(v))
+				entries = append(entries, Entry{key, val})
+			}
+		}
+		return nil
+	})
 	return entries, errors
 }
