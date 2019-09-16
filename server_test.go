@@ -450,17 +450,14 @@ func TestSearch(t *testing.T) {
 		Before                func()
 		ExpectedCode          int
 		ExpectedEntriesLength int
-		ExpectedError         string
+		ExpectedErrorsLength  int
 		Setup                 func()
 		Method                string
 	}
-	// used for testing valid value lookup
-	validTestValue := ""
-
 	testTable := []Test{
 		Test{
 			Name:                  "finds all keys starting with TEST-KEY-",
-			Path:                  "/search?q=TEST-KEY-",
+			Path:                  "/search?q=TES",
 			Before:                func() {},
 			ExpectedCode:          200,
 			ExpectedEntriesLength: 10,
@@ -476,26 +473,19 @@ func TestSearch(t *testing.T) {
 			req.Header.Add("Content-Type", "application/json")
 			router.ServeHTTP(w, req)
 			assert.Equal(t, test.ExpectedCode, w.Code)
-
-			// fmt.Println(" ****> POST: " + string(test.Body))
 			body := []byte(w.Body.String())
 			if test.ExpectedCode == 200 {
-				resp := []Entry{}
+				resp := RetrieveEntryResponse{}
 				err := json.Unmarshal(body, &resp)
 				assert.Nil(t, err)
-				assert.Equal(t, test.ExpectedEntriesLength, len(resp))
-				// set createdEntry on success
-				if len(resp) > 0 {
-					assert.NotEqual(t, 0, resp[0].Value)
-					validTestValue = strconv.Itoa(resp[0].Value)
-					assert.NotEqual(t, "0", validTestValue)
-				}
+				assert.Equal(t, test.ExpectedEntriesLength, len(resp.Entries))
+				assert.Equal(t, test.ExpectedErrorsLength, len(resp.Errors))
 			} else {
 				resp := Error{}
 				err := json.Unmarshal(body, &resp)
 				require.Nil(t, err)
-				assert.Equal(t, test.ExpectedError, resp.Error)
 				assert.Equal(t, test.ExpectedCode, resp.Code)
+				assert.Equal(t, test.ExpectedErrorsLength, 1)
 			}
 		})
 
