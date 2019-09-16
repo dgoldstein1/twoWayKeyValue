@@ -47,7 +47,7 @@ func main() {
 	app.Name = "twowaykv"
 	app.Usage = "Store and lookup key -> value and value ->"
 	app.Description = "A fast and portable two-way kev value webserver"
-	app.Version = "0.1.0"
+	app.Version = "1.0.0"
 	app.Commands = []cli.Command{
 		{
 			Name:    "serve",

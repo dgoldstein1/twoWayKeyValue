@@ -9,7 +9,7 @@ COPY build $GOBIN
 # set docs
 RUN mkdir /docs
 COPY api/index.html /docs/index.html
-COPY VERSION /doc/VERSION
+COPY VERSION /docs/VERSION
 ENV GRAPH_DOCS_DIR="/docs/*"
 
 RUN mkdir -p /db/twowaykv
