@@ -423,3 +423,82 @@ func TestGetEntries(t *testing.T) {
 
 	}
 }
+
+func TestSearch(t *testing.T) {
+
+	loadPath := "/tmp/twowaykv/randomEntries/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	require.NoError(t, err)
+	defer os.RemoveAll(loadPath)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	router, s := SetupRouter("./api/*")
+
+	// insert some randm stuff into db
+	err = s.K2v.Update(func(txn *badger.Txn) error {
+		for i := 0; i < 10; i++ {
+			if e := txn.Set([]byte("TEST-KEY-"+strconv.Itoa(i)), []byte("1")); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+	require.Nil(t, err)
+
+	type Test struct {
+		Name                  string
+		Path                  string
+		Before                func()
+		ExpectedCode          int
+		ExpectedEntriesLength int
+		ExpectedError         string
+		Setup                 func()
+		Method                string
+	}
+	// used for testing valid value lookup
+	validTestValue := ""
+
+	testTable := []Test{
+		Test{
+			Name:                  "finds all keys starting with TEST-KEY-",
+			Path:                  "/search?q=TEST-KEY-",
+			Before:                func() {},
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 10,
+			Method:                "GET",
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Before()
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer([]byte("")))
+			req.Header.Add("Content-Type", "application/json")
+			router.ServeHTTP(w, req)
+			assert.Equal(t, test.ExpectedCode, w.Code)
+
+			// fmt.Println(" ****> POST: " + string(test.Body))
+			body := []byte(w.Body.String())
+			if test.ExpectedCode == 200 {
+				resp := []Entry{}
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedEntriesLength, len(resp))
+				// set createdEntry on success
+				if len(resp) > 0 {
+					assert.NotEqual(t, 0, resp[0].Value)
+					validTestValue = strconv.Itoa(resp[0].Value)
+					assert.NotEqual(t, "0", validTestValue)
+				}
+			} else {
+				resp := Error{}
+				err := json.Unmarshal(body, &resp)
+				require.Nil(t, err)
+				assert.Equal(t, test.ExpectedError, resp.Error)
+				assert.Equal(t, test.ExpectedCode, resp.Code)
+			}
+		})
+
+	}
+
+}
