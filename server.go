@@ -27,6 +27,9 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
+	router.GET("/VERSION", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "VERSION", nil)
+	})
 	// metrics
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(router)

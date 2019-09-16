@@ -18,15 +18,52 @@ import (
 var testingDir = "/tmp/twowaykv/temp"
 
 func TestRemoveDupliactes(t *testing.T) {
-	t.Run("removes duplicates from array", func(t *testing.T) {
-		passed := []string{"k", "k1", "k"}
-		expected := []string{"k", "k1"}
-		assert.Equal(t, expected, removeDuplicates(passed))
-	})
-	t.Run("returns normal array on no duplicates", func(t *testing.T) {
-		passed := []string{"k1", "k2", "k3"}
-		assert.Equal(t, passed, removeDuplicates(passed))
-	})
+
+	loadPath := "/tmp/twowaykv/randomEntries/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	require.NoError(t, err)
+	defer os.RemoveAll(loadPath)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	router, _ := SetupRouter("./api/*")
+
+	type Test struct {
+		Name         string
+		Path         string
+		ExpectedCode int
+		Method       string
+	}
+	testTable := []Test{
+		Test{
+			Name:         "serves static assets",
+			Path:         "/",
+			ExpectedCode: 200,
+			Method:       "GET",
+		},
+		Test{
+			Name:         "serves version file",
+			Path:         "/VERSION",
+			ExpectedCode: 200,
+			Method:       "GET",
+		},
+		Test{
+			Name:         "doesnt serve othe static files",
+			Path:         "/swagger.yml",
+			ExpectedCode: 404,
+			Method:       "GET",
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer([]byte("")))
+			req.Header.Add("Content-Type", "application/json")
+			router.ServeHTTP(w, req)
+			assert.Equal(t, test.ExpectedCode, w.Code)
+		})
+
+	}
+
 }
 
 func TestRandomEntries(t *testing.T) {
