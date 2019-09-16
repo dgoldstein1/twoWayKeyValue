@@ -242,3 +242,7 @@ func GetEntriesFromValues(v2k *badger.DB, values []int) (entries []Entry, errors
 	})
 	return entries, errors
 }
+
+func SeekWithPrefix(k2v *badger.DB, q string) (entries []Entry, errors []string) {
+	return entries, errors
+}
