@@ -648,6 +648,64 @@ func TestSeekWithPrefix(t *testing.T) {
 
 			},
 		},
+		Test{
+			Name:                  "retrieves key in the context of many other keys",
+			Q:                     "keyToSearchFor",
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("keyToSearchFor"), []byte("111")); e != nil {
+						return e
+					}
+					for i := 0; i < 1000; i++ {
+						if e := txn.Set([]byte(strconv.Itoa(i)), []byte("111")); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("keyToSearchFor")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+		},
+		Test{
+			Name:                  "retrieves many keys",
+			Q:                     "TESTPREFIX",
+			ExpectedEntriesLength: 25,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 1000; i++ {
+						if e := txn.Set([]byte("TESTPREFIX"+strconv.Itoa(i)), []byte("111")); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 1000; i++ {
+						if e := txn.Delete([]byte("TESTPREFIX" + strconv.Itoa(i))); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
 	}
 
 	for _, test := range testTable {
