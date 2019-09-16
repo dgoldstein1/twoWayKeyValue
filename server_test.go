@@ -463,6 +463,14 @@ func TestSearch(t *testing.T) {
 			ExpectedEntriesLength: 10,
 			Method:                "GET",
 		},
+		Test{
+			Name:                 "returns error if no query is passed",
+			Path:                 "/search",
+			Before:               func() {},
+			ExpectedCode:         400,
+			ExpectedErrorsLength: 1,
+			Method:               "GET",
+		},
 	}
 
 	for _, test := range testTable {
