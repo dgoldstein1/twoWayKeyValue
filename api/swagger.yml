@@ -9,6 +9,37 @@ servers:
     url: https://virtserver.swaggerhub.com/dgoldstein1/twoWayKeyValue/0.1.0
 
 paths:
+  /search:
+    get:
+      summary: seek using prefix scans, limited to 25 results
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          required: true
+          description: starting prefix of key
+
+      responses:
+        '200':
+          description: entries with keys starting with prefix
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                    $ref: '#/components/schemas/KeyValueEntry'
+
+        '500':
+          description: Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+
+
+
   /entriesFromKeys:
     post:
       summary: retrieves entries given keys
