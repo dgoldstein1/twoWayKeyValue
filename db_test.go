@@ -706,6 +706,34 @@ func TestSeekWithPrefix(t *testing.T) {
 				require.Nil(t, err)
 			},
 		},
+		Test{
+			Name:                  "does not search by case",
+			Q:                     "tESTPREFIX",
+			ExpectedEntriesLength: 0,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 1000; i++ {
+						if e := txn.Set([]byte("TESTPREFIX"+strconv.Itoa(i)), []byte("111")); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 1000; i++ {
+						if e := txn.Delete([]byte("TESTPREFIX" + strconv.Itoa(i))); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
 	}
 
 	for _, test := range testTable {
