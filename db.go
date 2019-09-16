@@ -247,7 +247,9 @@ var MAX_QUERY_RESULTS = 25
 
 func SeekWithPrefix(k2v *badger.DB, q string) (entries []Entry, errors []string) {
 	k2v.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false
+		it := txn.NewIterator(opts)
 		defer it.Close()
 		prefix := []byte(q)
 		nFound := 0
