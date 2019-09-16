@@ -242,3 +242,27 @@ func GetEntriesFromValues(v2k *badger.DB, values []int) (entries []Entry, errors
 	})
 	return entries, errors
 }
+
+var MAX_QUERY_RESULTS = 25
+
+func SeekWithPrefix(k2v *badger.DB, q string) (entries []Entry, errors []string) {
+	k2v.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		prefix := []byte(q)
+		nFound := 0
+		for it.Seek(prefix); it.ValidForPrefix(prefix) && nFound < MAX_QUERY_RESULTS; it.Next() {
+			item := it.Item()
+			// add to response
+			key := string(item.KeyCopy(nil))
+			v, _ := item.ValueCopy(nil)
+			val, _ := strconv.Atoi(string(v))
+			entries = append(entries, Entry{key, val})
+			nFound++
+		}
+		return nil
+	})
+	return entries, errors
+}

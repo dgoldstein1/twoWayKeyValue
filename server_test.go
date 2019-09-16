@@ -18,15 +18,52 @@ import (
 var testingDir = "/tmp/twowaykv/temp"
 
 func TestRemoveDupliactes(t *testing.T) {
-	t.Run("removes duplicates from array", func(t *testing.T) {
-		passed := []string{"k", "k1", "k"}
-		expected := []string{"k", "k1"}
-		assert.Equal(t, expected, removeDuplicates(passed))
-	})
-	t.Run("returns normal array on no duplicates", func(t *testing.T) {
-		passed := []string{"k1", "k2", "k3"}
-		assert.Equal(t, passed, removeDuplicates(passed))
-	})
+
+	loadPath := "/tmp/twowaykv/randomEntries/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	require.NoError(t, err)
+	defer os.RemoveAll(loadPath)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	router, _ := SetupRouter("./api/*")
+
+	type Test struct {
+		Name         string
+		Path         string
+		ExpectedCode int
+		Method       string
+	}
+	testTable := []Test{
+		Test{
+			Name:         "serves static assets",
+			Path:         "/",
+			ExpectedCode: 200,
+			Method:       "GET",
+		},
+		Test{
+			Name:         "serves version file",
+			Path:         "/VERSION",
+			ExpectedCode: 200,
+			Method:       "GET",
+		},
+		Test{
+			Name:         "doesnt serve othe static files",
+			Path:         "/swagger.yml",
+			ExpectedCode: 404,
+			Method:       "GET",
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer([]byte("")))
+			req.Header.Add("Content-Type", "application/json")
+			router.ServeHTTP(w, req)
+			assert.Equal(t, test.ExpectedCode, w.Code)
+		})
+
+	}
+
 }
 
 func TestRandomEntries(t *testing.T) {
@@ -422,4 +459,81 @@ func TestGetEntries(t *testing.T) {
 		})
 
 	}
+}
+
+func TestSearch(t *testing.T) {
+
+	loadPath := "/tmp/twowaykv/randomEntries/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	require.NoError(t, err)
+	defer os.RemoveAll(loadPath)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	router, s := SetupRouter("./api/*")
+
+	// insert some randm stuff into db
+	err = s.K2v.Update(func(txn *badger.Txn) error {
+		for i := 0; i < 10; i++ {
+			if e := txn.Set([]byte("TEST-KEY-"+strconv.Itoa(i)), []byte("1")); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+	require.Nil(t, err)
+
+	type Test struct {
+		Name                  string
+		Path                  string
+		Before                func()
+		ExpectedCode          int
+		ExpectedEntriesLength int
+		ExpectedErrorsLength  int
+		Setup                 func()
+		Method                string
+	}
+	testTable := []Test{
+		Test{
+			Name:                  "finds all keys starting with TEST-KEY-",
+			Path:                  "/search?q=TES",
+			Before:                func() {},
+			ExpectedCode:          200,
+			ExpectedEntriesLength: 10,
+			Method:                "GET",
+		},
+		Test{
+			Name:                 "returns error if no query is passed",
+			Path:                 "/search",
+			Before:               func() {},
+			ExpectedCode:         400,
+			ExpectedErrorsLength: 1,
+			Method:               "GET",
+		},
+	}
+
+	for _, test := range testTable {
+		t.Run(test.Name, func(t *testing.T) {
+			test.Before()
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(test.Method, test.Path, bytes.NewBuffer([]byte("")))
+			req.Header.Add("Content-Type", "application/json")
+			router.ServeHTTP(w, req)
+			assert.Equal(t, test.ExpectedCode, w.Code)
+			body := []byte(w.Body.String())
+			if test.ExpectedCode == 200 {
+				resp := RetrieveEntryResponse{}
+				err := json.Unmarshal(body, &resp)
+				assert.Nil(t, err)
+				assert.Equal(t, test.ExpectedEntriesLength, len(resp.Entries))
+				assert.Equal(t, test.ExpectedErrorsLength, len(resp.Errors))
+			} else {
+				resp := Error{}
+				err := json.Unmarshal(body, &resp)
+				require.Nil(t, err)
+				assert.Equal(t, test.ExpectedCode, resp.Code)
+				assert.Equal(t, test.ExpectedErrorsLength, 1)
+			}
+		})
+
+	}
+
 }

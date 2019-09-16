@@ -27,6 +27,9 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
+	router.GET("/VERSION", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "VERSION", nil)
+	})
 	// metrics
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(router)
@@ -35,6 +38,7 @@ func SetupRouter(docs string) (*gin.Engine, *Server) {
 	router.POST("/entriesFromKeys", s.GetEntriesFromKeys)
 	router.POST("/entriesFromValues", s.GetEntriesFromValues)
 	router.GET("/random", s.RandomEntries)
+	router.GET("/search", s.Search)
 	// return server
 	return router, &s
 }
@@ -111,5 +115,15 @@ func (s *Server) GetEntriesFromValues(c *gin.Context) {
 		return
 	}
 	entries, errs := GetEntriesFromValues(s.V2k, values)
+	c.JSON(200, RetrieveEntryResponse{errs, entries})
+}
+
+func (s *Server) Search(c *gin.Context) {
+	q := c.Query("q")
+	if q == "" {
+		c.JSON(400, Error{400, "a query must be passed to /search"})
+		return
+	}
+	entries, errs := SeekWithPrefix(s.K2v, q)
 	c.JSON(200, RetrieveEntryResponse{errs, entries})
 }

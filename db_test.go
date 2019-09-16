@@ -554,11 +554,9 @@ func TestGetEntriesFromValues(t *testing.T) {
 					return nil
 				})
 				require.Nil(t, err)
-
 			},
 		},
 		Test{
-
 			Name:                  "throws error if value doesnt exist",
 			Values:                []int{112, 113},
 			ExpectedEntriesLength: 1,
@@ -594,6 +592,155 @@ func TestGetEntriesFromValues(t *testing.T) {
 		}
 		assert.Equal(t, test.ExpectedErrorsLength, len(errors))
 		assert.Equal(t, test.ExpectedEntriesLength, len(entries))
+		test.TearDown()
+	}
+}
+
+func TestSeekWithPrefix(t *testing.T) {
+
+	// setup, create DBs
+	loadPath := "/tmp/twowaykv/" + strconv.Itoa(rand.Intn(INT_MAX))
+	err := os.MkdirAll(loadPath, os.ModePerm)
+	defer os.RemoveAll(loadPath)
+	require.NoError(t, err)
+	os.Setenv("GRAPH_DB_STORE_DIR", loadPath)
+	k2v, v2k, err := ConnectToDb()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Nil(t, err)
+	assert.NotNil(t, k2v, v2k)
+	defer k2v.Close()
+	defer v2k.Close()
+
+	type Test struct {
+		Name                  string
+		Q                     string
+		ExpectedEntriesLength int
+		ExpectedErrorsLength  int
+		Setup                 func()
+		TearDown              func()
+	}
+
+	testTable := []Test{
+		Test{
+			Name:                  "retrieves valid key",
+			Q:                     "keyToSearchFor",
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("keyToSearchFor"), []byte("111")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("keyToSearchFor")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+		},
+		Test{
+			Name:                  "retrieves key in the context of many other keys",
+			Q:                     "keyToSearchFor",
+			ExpectedEntriesLength: 1,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Set([]byte("keyToSearchFor"), []byte("111")); e != nil {
+						return e
+					}
+					for i := 0; i < 1000; i++ {
+						if e := txn.Set([]byte(strconv.Itoa(i)), []byte("111")); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					if e := txn.Delete([]byte("keyToSearchFor")); e != nil {
+						return e
+					}
+					return nil
+				})
+				require.Nil(t, err)
+
+			},
+		},
+		Test{
+			Name:                  "retrieves many keys",
+			Q:                     "TESTPREFIX",
+			ExpectedEntriesLength: 25,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 1000; i++ {
+						if e := txn.Set([]byte("TESTPREFIX"+strconv.Itoa(i)), []byte("111")); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 1000; i++ {
+						if e := txn.Delete([]byte("TESTPREFIX" + strconv.Itoa(i))); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
+		Test{
+			Name:                  "does not search by case",
+			Q:                     "tESTPREFIX",
+			ExpectedEntriesLength: 0,
+			ExpectedErrorsLength:  0,
+			Setup: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 1000; i++ {
+						if e := txn.Set([]byte("TESTPREFIX"+strconv.Itoa(i)), []byte("111")); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+			TearDown: func() {
+				err := k2v.Update(func(txn *badger.Txn) error {
+					for i := 0; i < 1000; i++ {
+						if e := txn.Delete([]byte("TESTPREFIX" + strconv.Itoa(i))); e != nil {
+							return e
+						}
+					}
+					return nil
+				})
+				require.Nil(t, err)
+			},
+		},
+	}
+
+	for _, test := range testTable {
+		test.Setup()
+		entries, errors := SeekWithPrefix(k2v, test.Q)
+		assert.Equal(t, test.ExpectedEntriesLength, len(entries))
+		assert.Equal(t, test.ExpectedErrorsLength, len(errors))
 		test.TearDown()
 	}
 
