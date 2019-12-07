@@ -69,6 +69,7 @@ func TestParseEnv(t *testing.T) {
 		parseEnv()
 		assert.Equal(t, errors, []string{})
 		assert.Equal(t, os.Getenv("GRAPH_DB_STORE_PORT"), "15367")
+		os.Unsetenv("PORT")
 	})
 
 	t.Run("fails if GRAPH_DB_STORE_PORT is not valid int", func(t *testing.T) {

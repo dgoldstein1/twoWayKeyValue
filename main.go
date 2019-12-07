@@ -21,7 +21,7 @@ func parseEnv() {
 		FullTimestamp: true,
 	})
 	// set PORT to GRAPH_DB_STORE_PORT if not set
-	if os.Getenv("GRAPH_DB_STORE_PORT") == "" && os.Getenv("PORT") != "" {
+	if os.Getenv("PORT") != "" {
 		os.Setenv("GRAPH_DB_STORE_PORT", os.Getenv("PORT"))
 	}
 
