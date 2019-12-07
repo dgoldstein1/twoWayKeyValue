@@ -20,6 +20,11 @@ func parseEnv() {
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
+	// set PORT to GRAPH_DB_STORE_PORT if not set
+	if os.Getenv("PORT") != "" {
+		os.Setenv("GRAPH_DB_STORE_PORT", os.Getenv("PORT"))
+	}
+
 	requiredEnvs := []string{
 		"GRAPH_DB_STORE_DIR",
 		"GRAPH_DB_STORE_PORT",
@@ -52,7 +57,7 @@ func main() {
 		{
 			Name:    "serve",
 			Aliases: []string{"s"},
-			Usage:   "crawl on wikipedia articles",
+			Usage:   "serve",
 			Action: func(c *cli.Context) error {
 				parseEnv()
 				// port has already been validated

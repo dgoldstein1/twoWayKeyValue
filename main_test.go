@@ -59,6 +59,19 @@ func TestParseEnv(t *testing.T) {
 		})
 	}
 
+	t.Run("sets GRAPH_DB_STORE_PORT to PORT if is unset", func(t *testing.T) {
+		errors = []string{}
+		for _, v := range requiredEnvs {
+			os.Setenv(v, "5")
+		}
+		os.Unsetenv("GRAPH_DB_STORE_PORT")
+		os.Setenv("PORT", "15367")
+		parseEnv()
+		assert.Equal(t, errors, []string{})
+		assert.Equal(t, os.Getenv("GRAPH_DB_STORE_PORT"), "15367")
+		os.Unsetenv("PORT")
+	})
+
 	t.Run("fails if GRAPH_DB_STORE_PORT is not valid int", func(t *testing.T) {
 		errors = []string{}
 		os.Setenv("GRAPH_DB_STORE_PORT", "f232")

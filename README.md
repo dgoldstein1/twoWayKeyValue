@@ -23,7 +23,7 @@ docker pull dgoldstein1/twowaykv:latest
 
 ```sh
 export GRAPH_DB_STORE_DIR="/tmp/twowaykv" # storage directory
-export GRAPH_DB_STORE_PORT="5001" # port served on
+export GRAPH_DB_STORE_PORT="5001" # port served on. Will also use PORT
 export GRAPH_DOCS_DIR="./api/*" # location of docs (warning: this entire dir is served up to the browser)
 ./twowaykv serve
 # make example request
