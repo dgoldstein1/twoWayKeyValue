@@ -1,0 +1,18 @@
+version: "3.7"
+services:
+
+  graph:
+    image: dgoldstein1/twowaykv:latest
+    ports:
+      - 5001:5001
+    environment:
+      - GRAPH_DB_STORE_DIR=/db/twowaykv
+      - GRAPH_DB_STORE_PORT=5001
+      # aws
+      - USE_S3=false
+      - AWS_KV_PATH=s3://links-deployment/synonyms/twowaykv # initial download
+      - AWS_SYNC_DIRECTORY=s3://links-deployment/synonyms/twowaykv # upstream
+      - AWS_ACCESS_KEY_ID=
+      - AWS_SECRET_ACCESS_KEY=
+      - AWS_DEFAULT_REGION=us-east-1
+      - SAVE_INTERVAL=10
