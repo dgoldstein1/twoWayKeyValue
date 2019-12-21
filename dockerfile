@@ -15,6 +15,7 @@ RUN mkdir -p /db/twowaykv
 ENV GRAPH_DB_STORE_DIR="/db/twowaykv"
 ENV GRAPH_DB_STORE_PORT="5001"
 ENV COMMAND "serve"
+ENV SAVE_INTERVAL "200"
 
 COPY docker_run.sh docker_run.sh
 CMD ./docker_run.sh
