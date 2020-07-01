@@ -5,7 +5,6 @@ defaults: &defaults
   working_directory: /go/src/github.com/dgoldstein1/twowaykv
   environment:
     GO111MODULE: "on"
-    HEROKU_APP_NAMES: "twowaykv,arcane-oasis-94500,enigmatic-cliffs-85597,secure-taiga-63317"
 
 version: 2
 jobs:
